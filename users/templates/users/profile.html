@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Profil - Commandly{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="bi bi-person-circle"></i> Profil utilisateur
+            </h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations du profil</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Nom d'utilisateur :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.username }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Email :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.email|default:"Non renseigné" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Prénom :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.first_name|default:"Non renseigné" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Nom :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.last_name|default:"Non renseigné" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Date d'inscription :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.date_joined|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3">
+                            <strong>Dernière connexion :</strong>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

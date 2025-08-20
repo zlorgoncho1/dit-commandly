@@ -1,0 +1,28 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Commandly{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="bi bi-graph-up"></i> {{ title }}
+            </h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Statistiques détaillées</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Les statistiques détaillées seront affichées ici une fois que les modèles seront créés.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
