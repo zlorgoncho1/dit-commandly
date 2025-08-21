@@ -15,7 +15,7 @@ Commandly est un système de gestion de commandes développé avec Django, conç
 - [x] Architecture des vues pour toutes les applications
 
 ### 🔄 **Fonctionnalités en cours de développement**
-- [ ] Modèles de données (User, Product, Customer, Order, Invoice, Payment)
+- [ ] Modèles de données (CustomUser, Product, Customer, Order, Invoice, Payment)
 - [ ] Formulaires CRUD pour chaque entité
 - [ ] Templates pour toutes les vues
 - [ ] Logique métier et validation

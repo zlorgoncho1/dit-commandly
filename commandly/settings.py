@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Applications Django (chargées après) - auth et admin temporairement retirés
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -131,6 +132,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuration d'authentification personnalisée
+AUTH_USER_MODEL = 'users.CustomUser'
 LOGIN_REDIRECT_URL = '/users/profile/'
 LOGIN_URL = '/users/login/'
 LOGOUT_REDIRECT_URL = '/users/login/'

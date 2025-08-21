@@ -1,4 +1,39 @@
 # Vues pour l'application products
-from .product import ProductListView, ProductCreateView, ProductDetailView, ProductUpdateView, ProductDeleteView
+from .product import (
+    ProductListView,
+    ProductDetailView,
+    ProductCreateView,
+    ProductUpdateView,
+    ProductDeleteView,
+    ProductActivateView,
+    ProductDeactivateView,
+    ProductStockUpdateView,
+    ProductToggleStatusView,
+    ProductPriceUpdateView,
+    ProductQuickSearchView,
+    CategoryListView,
+    CategoryDetailView,
+    CategoryCreateView,
+    CategoryUpdateView,
+    CategoryDeleteView,
+)
 
-__all__ = ['ProductListView', 'ProductCreateView', 'ProductDetailView', 'ProductUpdateView', 'ProductDeleteView']
+__all__ = [
+    # CBV
+    'ProductListView',
+    'ProductDetailView',
+    'ProductCreateView',
+    'ProductUpdateView',
+    'ProductDeleteView',
+    'ProductActivateView',
+    'ProductDeactivateView',
+    'ProductStockUpdateView',
+    'ProductToggleStatusView',
+    'ProductPriceUpdateView',
+    'ProductQuickSearchView',
+    'CategoryListView',
+    'CategoryDetailView',
+    'CategoryCreateView',
+    'CategoryUpdateView',
+    'CategoryDeleteView',
+]

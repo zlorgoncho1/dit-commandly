@@ -18,12 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('dashboard.urls')),
-    path('users/', include('users.urls')),
-    path('products/', include('products.urls')),
-    path('customers/', include('customers.urls')),
-    path('orders/', include('orders.urls')),
-    path('invoices/', include('invoices.urls')),
-    path('payments/', include('payments.urls')),
+    path('admin/', admin.site.urls),  # Temporairement commenté
+    path('', include('dashboard.urls')),  # Temporairement commenté
+    path('users/', include('users.urls')),  # Temporairement commenté
+    path('products/', include('products.urls')),  # Temporairement commenté
+    path('customers/', include('customers.urls')),  # Temporairement commenté
+    path('orders/', include('orders.urls')),  # Temporairement commenté
+    path('invoices/', include('invoices.urls')),  # Temporairement commenté
+    path('payments/', include('payments.urls')),  # Temporairement commenté
 ]

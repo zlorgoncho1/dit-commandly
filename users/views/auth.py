@@ -24,7 +24,6 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context['user'] = self.request.user
         return context
 
-
 class RegisterView(TemplateView):
     template_name = 'users/register.html'
     
