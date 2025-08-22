@@ -1,187 +1,208 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
+from django.urls import reverse_lazy, reverse
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from customers.models import Customer
-from customers.forms import CustomerForm, CustomerSearchForm
+from customers.forms.customer_forms import CustomerForm, CustomerSearchForm
 
 
-@login_required
-def customer_list(request):
+class CustomerListView(LoginRequiredMixin, ListView):
     """
     Liste des clients avec recherche et pagination
     """
-    # Récupération des paramètres de recherche
-    search_form = CustomerSearchForm(request.GET)
-    customers = Customer.objects.all()
+    model = Customer
+    template_name = 'customers/customer_list.html'
+    context_object_name = 'page_obj'
+    paginate_by = 20
+    login_url = reverse_lazy('users:login')
     
-    if search_form.is_valid():
-        search_type = search_form.cleaned_data.get('search_type')
-        search_query = search_form.cleaned_data.get('search_query')
-        customer_type = search_form.cleaned_data.get('customer_type')
-        is_active = search_form.cleaned_data.get('is_active')
+    def get_queryset(self):
+        queryset = Customer.objects.all()
         
-        # Application des filtres
-        if search_query:
-            if search_type == 'name':
-                customers = customers.filter(
-                    Q(first_name__icontains=search_query) |
-                    Q(last_name__icontains=search_query)
-                )
-            elif search_type == 'email':
-                customers = customers.filter(email__icontains=search_query)
-            elif search_type == 'phone':
-                customers = customers.filter(phone__icontains=search_query)
-            elif search_type == 'company':
-                customers = customers.filter(company_name__icontains=search_query)
-            elif search_type == 'city':
-                customers = customers.filter(city__icontains=search_query)
+        # Récupération des paramètres de recherche
+        search_form = CustomerSearchForm(self.request.GET)
+        if search_form.is_valid():
+            search_type = search_form.cleaned_data.get('search_type')
+            search_query = search_form.cleaned_data.get('search_query')
+            customer_type = search_form.cleaned_data.get('customer_type')
+            is_active = search_form.cleaned_data.get('is_active')
+            
+            # Application des filtres
+            if search_query:
+                if search_type == 'name':
+                    queryset = queryset.filter(
+                        Q(first_name__icontains=search_query) |
+                        Q(last_name__icontains=search_query)
+                    )
+                elif search_type == 'email':
+                    queryset = queryset.filter(email__icontains=search_query)
+                elif search_type == 'phone':
+                    queryset = queryset.filter(phone__icontains=search_query)
+                elif search_type == 'company':
+                    queryset = queryset.filter(company_name__icontains=search_query)
+                elif search_type == 'city':
+                    queryset = queryset.filter(city__icontains=search_query)
+            
+            if customer_type:
+                queryset = queryset.filter(customer_type=customer_type)
+            
+            if is_active:
+                queryset = queryset.filter(is_active=is_active == 'True')
         
-        if customer_type:
-            customers = customers.filter(customer_type=customer_type)
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        search_form = CustomerSearchForm(self.request.GET)
+        customers = self.get_queryset()
         
-        if is_active:
-            customers = customers.filter(is_active=is_active == 'True')
-    
-    # Tri par défaut
-    customers = customers.order_by('-created_at')
-    
-    # Pagination
-    paginator = Paginator(customers, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'search_form': search_form,
-        'total_customers': customers.count(),
-        'active_customers': customers.filter(is_active=True).count(),
-        'company_customers': customers.filter(customer_type='company').count(),
-        'individual_customers': customers.filter(customer_type='individual').count(),
-    }
-    
-    return render(request, 'customers/customer_list.html', context)
+        context.update({
+            'search_form': search_form,
+            'total_customers': customers.count(),
+            'active_customers': customers.filter(is_active=True).count(),
+            'company_customers': customers.filter(customer_type='company').count(),
+            'individual_customers': customers.filter(customer_type='individual').count(),
+        })
+        
+        return context
 
 
-@login_required
-def customer_detail(request, customer_id):
+class CustomerDetailView(LoginRequiredMixin, DetailView):
     """
     Détail d'un client
     """
-    customer = get_object_or_404(Customer, id=customer_id)
+    model = Customer
+    template_name = 'customers/customer_detail.html'
+    context_object_name = 'customer'
+    login_url = reverse_lazy('users:login')
     
-    # Récupération des commandes du client
-    orders = customer.orders.all().order_by('-order_date')[:10]
-    
-    # Récupération des factures du client
-    invoices = customer.invoices.all().order_by('-invoice_date')[:10]
-    
-    # Récupération des paiements du client
-    payments = customer.payments.all().order_by('-payment_date')[:10]
-    
-    context = {
-        'customer': customer,
-        'orders': orders,
-        'invoices': invoices,
-        'payments': payments,
-        'total_orders': customer.get_total_orders(),
-        'total_spent': customer.get_total_spent(),
-    }
-    
-    return render(request, 'customers/customer_detail.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        customer = self.get_object()
+        
+        # Récupération des commandes du client
+        orders = customer.orders.all().order_by('-order_date')[:10] if hasattr(customer, 'orders') else []
+        
+        # Récupération des factures du client
+        invoices = customer.invoices.all().order_by('-invoice_date')[:10] if hasattr(customer, 'invoices') else []
+        
+        # Récupération des paiements du client
+        payments = customer.payments.all().order_by('-payment_date')[:10] if hasattr(customer, 'payments') else []
+        
+        context.update({
+            'orders': orders,
+            'invoices': invoices,
+            'payments': payments,
+            'total_orders': customer.get_total_orders(),
+            'total_spent': customer.get_total_spent(),
+        })
+        
+        return context
 
 
-@login_required
-def customer_create(request):
+class CustomerCreateView(LoginRequiredMixin, CreateView):
     """
     Création d'un nouveau client
     """
-    if request.method == 'POST':
-        form = CustomerForm(request.POST)
-        if form.is_valid():
-            customer = form.save()
-            messages.success(request, f'Client "{customer.full_name}" créé avec succès.')
-            return redirect('customers:customer_detail', customer_id=customer.id)
-        else:
-            messages.error(request, 'Erreur lors de la création du client. Veuillez corriger les erreurs.')
-    else:
-        form = CustomerForm()
+    model = Customer
+    form_class = CustomerForm
+    template_name = 'customers/customer_form.html'
+    login_url = reverse_lazy('users:login')
     
-    context = {
-        'form': form,
-        'title': 'Nouveau client',
-        'submit_text': 'Créer le client'
-    }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'title': 'Nouveau client',
+            'submit_text': 'Créer le client'
+        })
+        return context
     
-    return render(request, 'customers/customer_form.html', context)
+    def form_valid(self, form):
+        customer = form.save()
+        messages.success(self.request, f'Client "{customer.full_name}" créé avec succès.')
+        return redirect('customers:customer_detail', pk=customer.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de la création du client. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
 
 
-@login_required
-def customer_update(request, customer_id):
+class CustomerUpdateView(LoginRequiredMixin, UpdateView):
     """
     Modification d'un client existant
     """
-    customer = get_object_or_404(Customer, id=customer_id)
+    model = Customer
+    form_class = CustomerForm
+    template_name = 'customers/customer_form.html'
+    login_url = reverse_lazy('users:login')
     
-    if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=customer)
-        if form.is_valid():
-            customer = form.save()
-            messages.success(request, f'Client "{customer.full_name}" modifié avec succès.')
-            return redirect('customers:customer_detail', customer_id=customer.id)
-        else:
-            messages.error(request, 'Erreur lors de la modification du client. Veuillez corriger les erreurs.')
-    else:
-        form = CustomerForm(instance=customer)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        customer = self.get_object()
+        context.update({
+            'title': f'Modifier {customer.full_name}',
+            'submit_text': 'Enregistrer les modifications',
+            'customer': customer
+        })
+        return context
     
-    context = {
-        'form': form,
-        'customer': customer,
-        'title': f'Modifier {customer.full_name}',
-        'submit_text': 'Enregistrer les modifications'
-    }
+    def form_valid(self, form):
+        customer = form.save()
+        messages.success(self.request, f'Client "{customer.full_name}" modifié avec succès.')
+        return redirect('customers:customer_detail', pk=customer.pk)
     
-    return render(request, 'customers/customer_form.html', context)
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de la modification du client. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
 
 
-@login_required
-def customer_delete(request, customer_id):
+class CustomerDeleteView(LoginRequiredMixin, DeleteView):
     """
     Suppression d'un client
     """
-    customer = get_object_or_404(Customer, id=customer_id)
+    model = Customer
+    template_name = 'customers/customer_confirm_delete.html'
+    success_url = reverse_lazy('customers:customer_list')
+    login_url = reverse_lazy('users:login')
     
-    if request.method == 'POST':
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        customer = self.get_object()
+        
+        # Vérification des dépendances
+        has_orders = hasattr(customer, 'orders') and customer.orders.exists()
+        has_invoices = hasattr(customer, 'invoices') and customer.invoices.exists()
+        has_payments = hasattr(customer, 'payments') and customer.payments.exists()
+        
+        context.update({
+            'has_orders': has_orders,
+            'has_invoices': has_invoices,
+            'has_payments': has_payments,
+            'can_delete': not (has_orders or has_invoices or has_payments)
+        })
+        
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        customer = self.get_object()
         customer_name = customer.full_name
-        customer.delete()
+        response = super().delete(request, *args, **kwargs)
         messages.success(request, f'Client "{customer_name}" supprimé avec succès.')
-        return redirect('customers:customer_list')
-    
-    # Vérification des dépendances
-    has_orders = customer.orders.exists()
-    has_invoices = customer.invoices.exists()
-    has_payments = customer.payments.exists()
-    
-    context = {
-        'customer': customer,
-        'has_orders': has_orders,
-        'has_invoices': has_invoices,
-        'has_payments': has_payments,
-        'can_delete': not (has_orders or has_invoices or has_payments)
-    }
-    
-    return render(request, 'customers/customer_confirm_delete.html', context)
+        return response
 
 
-@login_required
-def customer_toggle_status(request, customer_id):
+class CustomerToggleStatusView(LoginRequiredMixin, View):
     """
     Activation/désactivation d'un client
     """
-    if request.method == 'POST':
-        customer = get_object_or_404(Customer, id=customer_id)
+    login_url = reverse_lazy('users:login')
+    
+    def post(self, request, pk):
+        customer = get_object_or_404(Customer, pk=pk)
         customer.is_active = not customer.is_active
         customer.save()
         
@@ -194,33 +215,36 @@ def customer_toggle_status(request, customer_id):
             'message': f'Client {status} avec succès.'
         })
     
-    return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'})
+    def get(self, request, pk):
+        return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'})
 
 
-@login_required
-def customer_quick_search(request):
+class CustomerQuickSearchView(LoginRequiredMixin, View):
     """
     Recherche rapide de clients pour les formulaires
     """
-    query = request.GET.get('q', '')
-    if len(query) < 2:
-        return JsonResponse({'results': []})
+    login_url = reverse_lazy('users:login')
     
-    customers = Customer.objects.filter(
-        Q(first_name__icontains=query) |
-        Q(last_name__icontains=query) |
-        Q(company_name__icontains=query) |
-        Q(email__icontains=query)
-    ).filter(is_active=True)[:10]
-    
-    results = []
-    for customer in customers:
-        results.append({
-            'id': customer.id,
-            'text': customer.display_name,
-            'email': customer.email,
-            'phone': customer.phone or '',
-            'address': customer.full_address
-        })
-    
-    return JsonResponse({'results': results})
+    def get(self, request):
+        query = request.GET.get('q', '')
+        if len(query) < 2:
+            return JsonResponse({'results': []})
+        
+        customers = Customer.objects.filter(
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(company_name__icontains=query) |
+            Q(email__icontains=query)
+        ).filter(is_active=True)[:10]
+        
+        results = []
+        for customer in customers:
+            results.append({
+                'id': customer.id,
+                'text': customer.display_name,
+                'email': customer.email,
+                'phone': customer.phone or '',
+                'address': customer.full_address
+            })
+        
+        return JsonResponse({'results': results})

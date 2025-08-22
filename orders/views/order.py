@@ -1,205 +1,226 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.utils import timezone
+from django.urls import reverse_lazy, reverse
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from orders.models import Order, OrderItem
-from orders.forms import OrderForm, OrderItemForm, OrderSearchForm
+from orders.forms.order_forms import OrderForm, OrderItemForm, OrderSearchForm
 from customers.models import Customer
 from products.models import Product
 
 
-@login_required
-def order_list(request):
+class OrderListView(LoginRequiredMixin, ListView):
     """
     Liste des commandes avec recherche et pagination
     """
-    # Récupération des paramètres de recherche
-    search_form = OrderSearchForm(request.GET)
-    orders = Order.objects.all()
+    model = Order
+    template_name = 'orders/order_list.html'
+    context_object_name = 'page_obj'
+    paginate_by = 20
+    login_url = reverse_lazy('users:login')
     
-    if search_form.is_valid():
-        search_type = search_form.cleaned_data.get('search_type')
-        search_query = search_form.cleaned_data.get('search_query')
-        customer = search_form.cleaned_data.get('customer')
-        status = search_form.cleaned_data.get('status')
-        date_from = search_form.cleaned_data.get('date_from')
-        date_to = search_form.cleaned_data.get('date_to')
-        amount_min = search_form.cleaned_data.get('amount_min')
-        amount_max = search_form.cleaned_data.get('amount_max')
+    def get_queryset(self):
+        orders = Order.objects.all()
         
-        # Application des filtres
-        if search_query:
-            if search_type == 'order_number':
-                orders = orders.filter(order_number__icontains=search_query)
-            elif search_type == 'customer':
-                orders = orders.filter(
-                    Q(customer__first_name__icontains=search_query) |
-                    Q(customer__last_name__icontains=search_query) |
-                    Q(customer__company_name__icontains=search_query)
-                )
-            elif search_type == 'status':
-                orders = orders.filter(status__icontains=search_query)
-            elif search_type == 'date':
-                orders = orders.filter(order_date__date__icontains=search_query)
+        # Récupération des paramètres de recherche
+        search_form = OrderSearchForm(self.request.GET)
+        if search_form.is_valid():
+            search_type = search_form.cleaned_data.get('search_type')
+            search_query = search_form.cleaned_data.get('search_query')
+            customer = search_form.cleaned_data.get('customer')
+            status = search_form.cleaned_data.get('status')
+            date_from = search_form.cleaned_data.get('date_from')
+            date_to = search_form.cleaned_data.get('date_to')
+            amount_min = search_form.cleaned_data.get('amount_min')
+            amount_max = search_form.cleaned_data.get('amount_max')
+            
+            # Application des filtres
+            if search_query:
+                if search_type == 'order_number':
+                    orders = orders.filter(order_number__icontains=search_query)
+                elif search_type == 'customer':
+                    orders = orders.filter(
+                        Q(customer__first_name__icontains=search_query) |
+                        Q(customer__last_name__icontains=search_query) |
+                        Q(customer__company_name__icontains=search_query)
+                    )
+                elif search_type == 'status':
+                    orders = orders.filter(status__icontains=search_query)
+                elif search_type == 'date':
+                    orders = orders.filter(order_date__date__icontains=search_query)
+            
+            if customer:
+                orders = orders.filter(customer=customer)
+            
+            if status:
+                orders = orders.filter(status=status)
+            
+            if date_from:
+                orders = orders.filter(order_date__date__gte=date_from)
+            
+            if date_to:
+                orders = orders.filter(order_date__date__lte=date_to)
+            
+            if amount_min:
+                orders = orders.filter(total_amount__gte=amount_min)
+            
+            if amount_max:
+                orders = orders.filter(total_amount__lte=amount_max)
         
-        if customer:
-            orders = orders.filter(customer=customer)
-        
-        if status:
-            orders = orders.filter(status=status)
-        
-        if date_from:
-            orders = orders.filter(order_date__date__gte=date_from)
-        
-        if date_to:
-            orders = orders.filter(order_date__date__lte=date_to)
-        
-        if amount_min:
-            orders = orders.filter(total_amount__gte=amount_min)
-        
-        if amount_max:
-            orders = orders.filter(total_amount__lte=amount_max)
+        return orders.order_by('-order_date')
     
-    # Tri par défaut
-    orders = orders.order_by('-order_date')
-    
-    # Pagination
-    paginator = Paginator(orders, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Calcul des statistiques
-    total_orders = orders.count()
-    total_amount = orders.aggregate(total=Sum('total_amount'))['total'] or 0
-    orders_by_status = {}
-    for status_choice in Order.STATUS_CHOICES:
-        status_code = status_choice[0]
-        orders_by_status[status_code] = orders.filter(status=status_code).count()
-    
-    context = {
-        'page_obj': page_obj,
-        'search_form': search_form,
-        'total_orders': total_orders,
-        'total_amount': total_amount,
-        'orders_by_status': orders_by_status,
-    }
-    
-    return render(request, 'orders/order_list.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        search_form = OrderSearchForm(self.request.GET)
+        orders = self.get_queryset()
+        
+        # Calcul des statistiques
+        total_orders = orders.count()
+        total_amount = orders.aggregate(total=Sum('total_amount'))['total'] or 0
+        orders_by_status = {}
+        for status_choice in Order.STATUS_CHOICES:
+            status_code = status_choice[0]
+            orders_by_status[status_code] = orders.filter(status=status_code).count()
+        
+        context.update({
+            'search_form': search_form,
+            'total_orders': total_orders,
+            'total_amount': total_amount,
+            'orders_by_status': orders_by_status,
+        })
+        
+        return context
 
 
-@login_required
-def order_detail(request, order_id):
+class OrderDetailView(LoginRequiredMixin, DetailView):
     """
     Détail d'une commande
     """
-    order = get_object_or_404(Order, id=order_id)
+    model = Order
+    template_name = 'orders/order_detail.html'
+    context_object_name = 'order'
+    login_url = reverse_lazy('users:login')
     
-    # Récupération des lignes de commande
-    order_items = order.items.all().order_by('id')
-    
-    # Récupération de la facture associée si elle existe
-    invoice = getattr(order, 'invoice', None)
-    
-    context = {
-        'order': order,
-        'order_items': order_items,
-        'invoice': invoice,
-        'subtotal_ht': order.subtotal_ht,
-        'tax_amount': order.tax_amount,
-        'total_amount': order.total_amount,
-    }
-    
-    return render(request, 'orders/order_detail.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order = self.get_object()
+        
+        # Récupération des lignes de commande
+        order_items = order.items.all().order_by('id')
+        
+        # Récupération de la facture associée si elle existe
+        invoice = getattr(order, 'invoice', None)
+        
+        context.update({
+            'order_items': order_items,
+            'invoice': invoice,
+            'subtotal_ht': order.subtotal_ht,
+            'tax_amount': order.tax_amount,
+            'total_amount': order.total_amount,
+        })
+        
+        return context
 
 
-@login_required
-def order_create(request):
+class OrderCreateView(LoginRequiredMixin, CreateView):
     """
     Création d'une nouvelle commande
     """
-    if request.method == 'POST':
-        form = OrderForm(request.POST)
-        if form.is_valid():
-            order = form.save()
-            messages.success(request, f'Commande "{order.order_number}" créée avec succès.')
-            return redirect('orders:order_detail', order_id=order.id)
-        else:
-            messages.error(request, 'Erreur lors de la création de la commande. Veuillez corriger les erreurs.')
-    else:
-        form = OrderForm()
+    model = Order
+    form_class = OrderForm
+    template_name = 'orders/order_form.html'
+    login_url = reverse_lazy('users:login')
     
-    context = {
-        'form': form,
-        'title': 'Nouvelle commande',
-        'submit_text': 'Créer la commande'
-    }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'title': 'Nouvelle commande',
+            'submit_text': 'Créer la commande'
+        })
+        return context
     
-    return render(request, 'orders/order_form.html', context)
+    def form_valid(self, form):
+        order = form.save()
+        messages.success(self.request, f'Commande "{order.order_number}" créée avec succès.')
+        return redirect('orders:order_detail', pk=order.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de la création de la commande. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
 
 
-@login_required
-def order_update(request, order_id):
+class OrderUpdateView(LoginRequiredMixin, UpdateView):
     """
     Modification d'une commande existante
     """
-    order = get_object_or_404(Order, id=order_id)
+    model = Order
+    form_class = OrderForm
+    template_name = 'orders/order_form.html'
+    login_url = reverse_lazy('users:login')
     
-    if request.method == 'POST':
-        form = OrderForm(request.POST, instance=order)
-        if form.is_valid():
-            order = form.save()
-            messages.success(request, f'Commande "{order.order_number}" modifiée avec succès.')
-            return redirect('orders:order_detail', order_id=order.id)
-        else:
-            messages.error(request, 'Erreur lors de la modification de la commande. Veuillez corriger les erreurs.')
-    else:
-        form = OrderForm(instance=order)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order = self.get_object()
+        context.update({
+            'title': f'Modifier la commande {order.order_number}',
+            'submit_text': 'Enregistrer les modifications',
+            'order': order
+        })
+        return context
     
-    context = {
-        'form': form,
-        'order': order,
-        'title': f'Modifier la commande {order.order_number}',
-        'submit_text': 'Enregistrer les modifications'
-    }
+    def form_valid(self, form):
+        order = form.save()
+        messages.success(self.request, f'Commande "{order.order_number}" modifiée avec succès.')
+        return redirect('orders:order_detail', pk=order.pk)
     
-    return render(request, 'orders/order_form.html', context)
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de la modification de la commande. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
 
 
-@login_required
-def order_delete(request, order_id):
+class OrderDeleteView(LoginRequiredMixin, DeleteView):
     """
     Suppression d'une commande
     """
-    order = get_object_or_404(Order, id=order_id)
+    model = Order
+    template_name = 'orders/order_confirm_delete.html'
+    success_url = reverse_lazy('orders:order_list')
+    login_url = reverse_lazy('users:login')
     
-    if request.method == 'POST':
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order = self.get_object()
+        
+        # Vérification des dépendances
+        has_invoice = hasattr(order, 'invoice')
+        
+        context.update({
+            'has_invoice': has_invoice,
+            'can_delete': not has_invoice
+        })
+        
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        order = self.get_object()
         order_number = order.order_number
-        order.delete()
+        response = super().delete(request, *args, **kwargs)
         messages.success(request, f'Commande "{order_number}" supprimée avec succès.')
-        return redirect('orders:order_list')
-    
-    # Vérification des dépendances
-    has_invoice = hasattr(order, 'invoice')
-    
-    context = {
-        'order': order,
-        'has_invoice': has_invoice,
-        'can_delete': not has_invoice
-    }
-    
-    return render(request, 'orders/order_confirm_delete.html', context)
+        return response
 
 
-@login_required
-def order_update_status(request, order_id):
+class OrderStatusUpdateView(LoginRequiredMixin, View):
     """
     Mise à jour du statut d'une commande
     """
-    if request.method == 'POST':
-        order = get_object_or_404(Order, id=order_id)
+    login_url = reverse_lazy('users:login')
+    
+    def post(self, request, pk):
+        order = get_object_or_404(Order, pk=pk)
         new_status = request.POST.get('status')
         
         if new_status in dict(Order.STATUS_CHOICES):
@@ -218,122 +239,143 @@ def order_update_status(request, order_id):
                 'success': True,
                 'new_status': new_status,
                 'status_display': order.get_status_display(),
-                'status_color': order.get_status_display_color(),
+                'status_color': getattr(order, 'get_status_display_color', lambda: 'secondary')(),
                 'message': f'Statut mis à jour avec succès.'
             })
         else:
             return JsonResponse({'success': False, 'message': 'Statut invalide.'})
     
-    return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'})
+    def get(self, request, pk):
+        return JsonResponse({'success': False, 'message': 'Méthode non autorisée.'})
 
 
-# Vues pour les lignes de commande
-@login_required
-def order_item_create(request, order_id):
-    """
-    Ajout d'une ligne de commande
-    """
-    order = get_object_or_404(Order, id=order_id)
-    
-    if request.method == 'POST':
-        form = OrderItemForm(request.POST)
-        if form.is_valid():
-            order_item = form.save(commit=False)
-            order_item.order = order
-            order_item.save()
-            
-            messages.success(request, f'Produit ajouté à la commande avec succès.')
-            return redirect('orders:order_detail', order_id=order.id)
-        else:
-            messages.error(request, 'Erreur lors de l\'ajout du produit. Veuillez corriger les erreurs.')
-    else:
-        form = OrderItemForm()
-    
-    context = {
-        'form': form,
-        'order': order,
-        'title': f'Ajouter un produit à la commande {order.order_number}',
-        'submit_text': 'Ajouter le produit'
-    }
-    
-    return render(request, 'orders/order_item_form.html', context)
-
-
-@login_required
-def order_item_update(request, order_id, item_id):
-    """
-    Modification d'une ligne de commande
-    """
-    order = get_object_or_404(Order, id=order_id)
-    order_item = get_object_or_404(OrderItem, id=item_id, order=order)
-    
-    if request.method == 'POST':
-        form = OrderItemForm(request.POST, instance=order_item)
-        if form.is_valid():
-            order_item.save()
-            messages.success(request, f'Ligne de commande modifiée avec succès.')
-            return redirect('orders:order_detail', order_id=order.id)
-        else:
-            messages.error(request, 'Erreur lors de la modification. Veuillez corriger les erreurs.')
-    else:
-        form = OrderItemForm(instance=order_item)
-    
-    context = {
-        'form': form,
-        'order': order,
-        'order_item': order_item,
-        'title': f'Modifier la ligne de commande',
-        'submit_text': 'Enregistrer les modifications'
-    }
-    
-    return render(request, 'orders/order_item_form.html', context)
-
-
-@login_required
-def order_item_delete(request, order_id, item_id):
-    """
-    Suppression d'une ligne de commande
-    """
-    order = get_object_or_404(Order, id=order_id)
-    order_item = get_object_or_404(OrderItem, id=item_id, order=order)
-    
-    if request.method == 'POST':
-        product_name = order_item.product.name
-        order_item.delete()
-        messages.success(request, f'Produit "{product_name}" supprimé de la commande.')
-        return redirect('orders:order_detail', order_id=order.id)
-    
-    context = {
-        'order': order,
-        'order_item': order_item,
-    }
-    
-    return render(request, 'orders/order_item_confirm_delete.html', context)
-
-
-@login_required
-def order_quick_search(request):
+class OrderQuickSearchView(LoginRequiredMixin, View):
     """
     Recherche rapide de commandes pour les formulaires
     """
-    query = request.GET.get('q', '')
-    if len(query) < 2:
-        return JsonResponse({'results': []})
+    login_url = reverse_lazy('users:login')
     
-    orders = Order.objects.filter(
-        Q(order_number__icontains=query) |
-        Q(customer__first_name__icontains=query) |
-        Q(customer__last_name__icontains=query)
-    )[:10]
+    def get(self, request):
+        query = request.GET.get('q', '')
+        if len(query) < 2:
+            return JsonResponse({'results': []})
+        
+        orders = Order.objects.filter(
+            Q(order_number__icontains=query) |
+            Q(customer__first_name__icontains=query) |
+            Q(customer__last_name__icontains=query)
+        )[:10]
+        
+        results = []
+        for order in orders:
+            results.append({
+                'id': order.id,
+                'text': f"{order.order_number} - {order.customer.full_name}",
+                'customer': order.customer.full_name,
+                'status': order.get_status_display(),
+                'total': str(order.total_amount)
+            })
+        
+        return JsonResponse({'results': results})
+
+
+# Vues pour les lignes de commande
+class OrderItemCreateView(LoginRequiredMixin, CreateView):
+    """
+    Ajout d'une ligne de commande
+    """
+    model = OrderItem
+    form_class = OrderItemForm
+    template_name = 'orders/order_item_form.html'
+    login_url = reverse_lazy('users:login')
     
-    results = []
-    for order in orders:
-        results.append({
-            'id': order.id,
-            'text': f"{order.order_number} - {order.customer.full_name}",
-            'customer': order.customer.full_name,
-            'status': order.get_status_display(),
-            'total': str(order.total_amount)
+    def dispatch(self, request, *args, **kwargs):
+        self.order = get_object_or_404(Order, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'order': self.order,
+            'title': f'Ajouter un produit à la commande {self.order.order_number}',
+            'submit_text': 'Ajouter le produit'
         })
+        return context
     
-    return JsonResponse({'results': results})
+    def form_valid(self, form):
+        order_item = form.save(commit=False)
+        order_item.order = self.order
+        order_item.save()
+        
+        messages.success(self.request, f'Produit ajouté à la commande avec succès.')
+        return redirect('orders:order_detail', pk=self.order.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de l\'ajout du produit. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
+
+
+class OrderItemUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Modification d'une ligne de commande
+    """
+    model = OrderItem
+    form_class = OrderItemForm
+    template_name = 'orders/order_item_form.html'
+    login_url = reverse_lazy('users:login')
+    
+    def get_object(self, queryset=None):
+        order = get_object_or_404(Order, pk=self.kwargs['pk'])
+        return get_object_or_404(OrderItem, pk=self.kwargs['item_pk'], order=order)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_item = self.get_object()
+        context.update({
+            'order': order_item.order,
+            'order_item': order_item,
+            'title': f'Modifier la ligne de commande',
+            'submit_text': 'Enregistrer les modifications'
+        })
+        return context
+    
+    def form_valid(self, form):
+        order_item = form.save()
+        messages.success(self.request, f'Ligne de commande modifiée avec succès.')
+        return redirect('orders:order_detail', pk=order_item.order.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Erreur lors de la modification. Veuillez corriger les erreurs.')
+        return super().form_invalid(form)
+
+
+class OrderItemDeleteView(LoginRequiredMixin, DeleteView):
+    """
+    Suppression d'une ligne de commande
+    """
+    model = OrderItem
+    template_name = 'orders/order_item_confirm_delete.html'
+    login_url = reverse_lazy('users:login')
+    
+    def get_object(self, queryset=None):
+        order = get_object_or_404(Order, pk=self.kwargs['pk'])
+        return get_object_or_404(OrderItem, pk=self.kwargs['item_pk'], order=order)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_item = self.get_object()
+        context.update({
+            'order': order_item.order,
+            'order_item': order_item,
+        })
+        return context
+    
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.object.order.pk})
+    
+    def delete(self, request, *args, **kwargs):
+        order_item = self.get_object()
+        product_name = order_item.product.name
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, f'Produit "{product_name}" supprimé de la commande.')
+        return response

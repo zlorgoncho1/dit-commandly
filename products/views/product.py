@@ -45,8 +45,10 @@ class ProductListView(LoginRequiredMixin, ListView):
                 products = products.filter(product_type=product_type)
             if price_min:
                 products = products.filter(unit_price__gte=price_min)
+                # gte pour greater than or equal to
             if price_max:
                 products = products.filter(unit_price__lte=price_max)
+                # lte pour less than or equal to
             if stock_status:
                 if stock_status == 'available':
                     products = products.filter(stock_quantity__gt=0)
@@ -85,7 +87,7 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
     model = Product
     template_name = 'products/product_detail.html'
     context_object_name = 'product'
-    pk_url_kwarg = 'product_id'
+    pk_url_kwarg = 'pk'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -105,7 +107,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f'Produit "{self.object.name}" créé avec succès.')
-        return redirect('products:product_detail', product_id=self.object.id)
+        return redirect('products:product_detail', pk=self.object.pk)
 
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la création du produit. Veuillez corriger les erreurs.')
@@ -122,12 +124,12 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
     model = Product
     form_class = ProductForm
     template_name = 'products/product_form.html'
-    pk_url_kwarg = 'product_id'
+    pk_url_kwarg = 'pk'
 
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f'Produit "{self.object.name}" modifié avec succès.')
-        return redirect('products:product_detail', product_id=self.object.id)
+        return redirect('products:product_detail', pk=self.object.pk)
 
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification du produit. Veuillez corriger les erreurs.')
@@ -144,7 +146,7 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product
     template_name = 'products/product_confirm_delete.html'
-    pk_url_kwarg = 'product_id'
+    pk_url_kwarg = 'pk'
     success_url = reverse_lazy('products:product_list')
 
     def post(self, request, *args, **kwargs):
@@ -169,8 +171,8 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class ProductToggleStatusView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        product = get_object_or_404(Product, id=product_id)
+    def post(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
         product.is_active = not product.is_active
         product.save()
         status = "activé" if product.is_active else "désactivé"
@@ -226,7 +228,7 @@ class CategoryDetailView(LoginRequiredMixin, DetailView):
     model = Category
     template_name = 'products/category_detail.html'
     context_object_name = 'category'
-    pk_url_kwarg = 'category_id'
+    pk_url_kwarg = 'pk'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -263,7 +265,7 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
     model = Category
     form_class = CategoryForm
     template_name = 'products/category_form.html'
-    pk_url_kwarg = 'category_id'
+    pk_url_kwarg = 'pk'
     success_url = reverse_lazy('products:category_list')
 
     def form_valid(self, form):
@@ -286,7 +288,7 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
 class CategoryDeleteView(LoginRequiredMixin, DeleteView):
     model = Category
     template_name = 'products/category_confirm_delete.html'
-    pk_url_kwarg = 'category_id'
+    pk_url_kwarg = 'pk'
     success_url = reverse_lazy('products:category_list')
 
     def post(self, request, *args, **kwargs):
@@ -312,8 +314,8 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
 # --- Vues supplémentaires demandées ---
 
 class ProductActivateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
+    def post(self, request, pk):
+        produit = get_object_or_404(Product, pk=pk)
         if not produit.is_active:
             produit.is_active = True
             produit.save()
@@ -323,8 +325,8 @@ class ProductActivateView(LoginRequiredMixin, View):
         return JsonResponse({'success': True, 'is_active': produit.is_active})
 
 class ProductDeactivateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
+    def post(self, request, pk):
+        produit = get_object_or_404(Product, pk=pk)
         if produit.is_active:
             produit.is_active = False
             produit.save()
@@ -334,8 +336,8 @@ class ProductDeactivateView(LoginRequiredMixin, View):
         return JsonResponse({'success': True, 'is_active': produit.is_active})
 
 class ProductStockUpdateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
+    def post(self, request, pk):
+        produit = get_object_or_404(Product, pk=pk)
         try:
             new_stock = int(request.POST.get('stock_quantity', None))
             if new_stock < 0:
@@ -349,8 +351,8 @@ class ProductStockUpdateView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'message': 'Valeur de stock invalide.'}, status=400)
 
 class ProductPriceUpdateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
+    def post(self, request, pk):
+        produit = get_object_or_404(Product, pk=pk)
         try:
             new_price = float(request.POST.get('unit_price', None))
             if new_price < 0:
@@ -363,56 +365,3 @@ class ProductPriceUpdateView(LoginRequiredMixin, View):
             messages.error(request, "Valeur de prix invalide.")
             return JsonResponse({'success': False, 'message': 'Valeur de prix invalide.'}, status=400)
 
-# --- Vues supplémentaires demandées ---
-
-class ProductActivateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
-        if not produit.is_active:
-            produit.is_active = True
-            produit.save()
-            messages.success(request, f'Produit "{produit.name}" activé avec succès.')
-        else:
-            messages.info(request, f'Produit "{produit.name}" est déjà actif.')
-        return JsonResponse({'success': True, 'is_active': produit.is_active})
-
-class ProductDeactivateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
-        if produit.is_active:
-            produit.is_active = False
-            produit.save()
-            messages.success(request, f'Produit "{produit.name}" désactivé avec succès.')
-        else:
-            messages.info(request, f'Produit "{produit.name}" est déjà inactif.')
-        return JsonResponse({'success': True, 'is_active': produit.is_active})
-
-class ProductStockUpdateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
-        try:
-            new_stock = int(request.POST.get('stock_quantity', None))
-            if new_stock < 0:
-                raise ValueError
-            produit.stock_quantity = new_stock
-            produit.save()
-            messages.success(request, f'Stock du produit "{produit.name}" mis à jour à {new_stock}.')
-            return JsonResponse({'success': True, 'stock_quantity': produit.stock_quantity})
-        except (TypeError, ValueError):
-            messages.error(request, "Valeur de stock invalide.")
-            return JsonResponse({'success': False, 'message': 'Valeur de stock invalide.'}, status=400)
-
-class ProductPriceUpdateView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
-        produit = get_object_or_404(Product, id=product_id)
-        try:
-            new_price = float(request.POST.get('unit_price', None))
-            if new_price < 0:
-                raise ValueError
-            produit.unit_price = new_price
-            produit.save()
-            messages.success(request, f'Prix du produit "{produit.name}" mis à jour à {new_price} FCFA.')
-            return JsonResponse({'success': True, 'unit_price': str(produit.unit_price)})
-        except (TypeError, ValueError):
-            messages.error(request, "Valeur de prix invalide.")
-            return JsonResponse({'success': False, 'message': 'Valeur de prix invalide.'}, status=400)
