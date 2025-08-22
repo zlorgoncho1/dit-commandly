@@ -1,0 +1,515 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Produits - Commandly{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h1">
+            <i class="bi bi-box text-success me-3"></i>
+            Gestion des Produits
+        </h1>
+        <p class="text-secondary">Gérez votre catalogue de produits et services</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'products:product_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Nouveau Produit
+        </a>
+        <a href="{% url 'products:category_list' %}" class="btn btn-secondary">
+            <i class="bi bi-tags me-2"></i>Catégories
+        </a>
+    </div>
+</div>
+
+<!-- Statistiques compactes -->
+<div class="row mb-4">
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: var(--color-primary); color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ total_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Total Produits</div>
+                <i class="bi bi-box kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: var(--color-success); color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ active_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Actifs</div>
+                <i class="bi bi-check-circle kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: #6366F1; color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ product_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Produits</div>
+                <i class="bi bi-box-seam kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: var(--color-warning); color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ service_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Services</div>
+                <i class="bi bi-gear kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: var(--color-danger); color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ low_stock_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Stock Faible</div>
+                <i class="bi bi-exclamation-triangle kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3">
+        <div class="card kpi-card" style="background: var(--color-gray-900); color: white; border: none; min-height: 120px;">
+            <div class="card-body text-center p-3">
+                <div class="kpi-value" style="font-size: 1.8rem;">{{ out_of_stock_products|default:0 }}</div>
+                <div class="kpi-label" style="color: rgba(255,255,255,0.9); font-size: 0.8rem;">Rupture</div>
+                <i class="bi bi-x-circle kpi-icon" style="font-size: 1.5rem;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section de recherche moderne -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0 d-flex align-items-center">
+            <i class="bi bi-funnel text-primary me-2"></i>
+            Filtres de recherche
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="get">
+            <!-- Première ligne de filtres -->
+            <div class="row mb-3">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.search_type.id_for_label }}" class="form-label">Type de recherche</label>
+                        {{ search_form.search_type }}
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.search_query.id_for_label }}" class="form-label">Rechercher</label>
+                        <div class="input-group">
+                            {{ search_form.search_query }}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-12 mb-3">
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            {% if request.GET %}
+                                <a href="{% url 'products:product_list' %}" class="btn btn-secondary flex-1">
+                                    <i class="bi bi-x-circle me-1"></i>Effacer
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deuxième ligne de filtres -->
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.category.id_for_label }}" class="form-label">Catégorie</label>
+                        {{ search_form.category }}
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.product_type.id_for_label }}" class="form-label">Type de produit</label>
+                        {{ search_form.product_type }}
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.price_min.id_for_label }}" class="form-label">Prix min</label>
+                        <div class="input-group">
+                            {{ search_form.price_min }}
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.price_max.id_for_label }}" class="form-label">Prix max</label>
+                        <div class="input-group">
+                            {{ search_form.price_max }}
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.stock_status.id_for_label }}" class="form-label">Stock</label>
+                        {{ search_form.stock_status }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Troisième ligne de filtres -->
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="{{ search_form.is_active.id_for_label }}" class="form-label">Statut</label>
+                        {{ search_form.is_active }}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des produits -->
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0 d-flex align-items-center">
+                <i class="bi bi-grid-3x3-gap text-primary me-2"></i>
+                Catalogue Produits
+                {% if page_obj %}
+                    <span class="badge badge-primary ms-2">{{ page_obj.paginator.count }}</span>
+                {% endif %}
+            </h3>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-primary active" id="tableView">
+                    <i class="bi bi-table me-1"></i>Tableau
+                </button>
+                <button type="button" class="btn btn-secondary" id="cardView">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>Cartes
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if page_obj %}
+            <!-- Vue tableau -->
+            <div id="table-view">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="padding: 16px;">Produit</th>
+                                <th style="padding: 16px;">SKU</th>
+                                <th style="padding: 16px;">Catégorie</th>
+                                <th style="padding: 16px;">Type</th>
+                                <th style="padding: 16px;">Prix</th>
+                                <th style="padding: 16px;">Stock</th>
+                                <th style="padding: 16px;">Statut</th>
+                                <th style="padding: 16px;" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in page_obj %}
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <div class="d-flex align-items-center">
+                                            <div class="product-image me-3">
+                                                <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ product.name }}</div>
+                                                {% if product.description %}
+                                                    <small class="text-muted">{{ product.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        {% if product.sku %}
+                                            <code style="background: var(--color-gray-100); padding: 2px 6px; border-radius: 4px;">{{ product.sku }}</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        {% if product.category %}
+                                            <span class="badge" style="background: #6366F1; color: white;">{{ product.category.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Non catégorisé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        <span class="badge {% if product.product_type == 'service' %}badge-warning{% else %}badge-primary{% endif %}">
+                                            {{ product.get_product_type_display }}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        <span class="fw-semibold text-success">{{ product.unit_price|floatformat:0 }} FCFA</span>
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        {% if product.product_type == 'product' %}
+                                            {% if product.stock_quantity > product.min_stock_level %}
+                                                <span class="badge badge-success">{{ product.stock_quantity }}</span>
+                                            {% elif product.stock_quantity > 0 %}
+                                                <span class="badge badge-warning">{{ product.stock_quantity }} (Faible)</span>
+                                            {% else %}
+                                                <span class="badge badge-danger">Rupture</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        {% include 'components/status_badge.html' with status=product.is_active type='product' %}
+                                    </td>
+                                    <td style="padding: 16px;" class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'products:product_detail' product.pk %}" 
+                                               class="btn btn-primary btn-sm" data-tooltip="Voir détails">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'products:product_update' product.pk %}" 
+                                               class="btn btn-warning btn-sm" data-tooltip="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-{% if product.is_active %}danger{% else %}success{% endif %} btn-sm"
+                                                    onclick="toggleProductStatus({{ product.pk }}, '{{ product.is_active|yesno:'true,false' }}')"
+                                                    data-tooltip="{% if product.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                                <i class="bi bi-{% if product.is_active %}x-circle{% else %}check-circle{% endif %}"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Vue cartes (cachée par défaut) -->
+            <div id="card-view" style="display: none;">
+                <div class="row g-3 p-4">
+                    {% for product in page_obj %}
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="card kpi-card h-100" style="border: none; box-shadow: var(--shadow-md);">
+                                <div class="card-body p-3">
+                                    <!-- En-tête de la carte -->
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="product-image me-3">
+                                            <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %}"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h6 class="mb-1 fw-semibold">{{ product.name|truncatechars:30 }}</h6>
+                                            {% if product.sku %}
+                                                <small class="text-muted">SKU: {{ product.sku }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Prix -->
+                                    <div class="mb-3">
+                                        <div class="fw-bold text-success" style="font-size: 1.1rem;">{{ product.unit_price|floatformat:0 }} FCFA</div>
+                                    </div>
+                                    
+                                    <!-- Badges -->
+                                    <div class="mb-3 d-flex flex-wrap gap-1">
+                                        {% if product.category %}
+                                            <span class="badge" style="background: #6366F1; color: white; font-size: 0.75rem;">{{ product.category.name }}</span>
+                                        {% endif %}
+                                        <span class="badge {% if product.product_type == 'service' %}badge-warning{% else %}badge-primary{% endif %}" style="font-size: 0.75rem;">
+                                            {{ product.get_product_type_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Stock (pour les produits) -->
+                                    {% if product.product_type == 'product' %}
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">Stock:</small>
+                                                {% if product.stock_quantity > product.min_stock_level %}
+                                                    <span class="badge badge-success">{{ product.stock_quantity }}</span>
+                                                {% elif product.stock_quantity > 0 %}
+                                                    <span class="badge badge-warning">{{ product.stock_quantity }}</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Rupture</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Statut et actions -->
+                                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                                        {% include 'components/status_badge.html' with status=product.is_active type='product' %}
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'products:product_detail' product.pk %}" 
+                                               class="btn btn-primary btn-sm" data-tooltip="Voir détails">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'products:product_update' product.pk %}" 
+                                               class="btn btn-warning btn-sm" data-tooltip="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <div class="card-footer">
+                        <nav aria-label="Navigation des pages">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}">
+                                            <i class="bi bi-chevron-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}">
+                                            <i class="bi bi-chevron-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-box text-muted" style="font-size: 4rem; opacity: 0.5;"></i>
+                <h4 class="mt-3">Aucun produit trouvé</h4>
+                <p class="text-muted">Commencez par ajouter votre premier produit.</p>
+                <a href="{% url 'products:product_create' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Créer un produit
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleProductStatus(productId, currentStatus) {
+        designSystem.showConfirmDialog(
+            'Êtes-vous sûr de vouloir changer le statut de ce produit ?',
+            function() {
+                fetch(`{% url 'products:product_toggle_status' 0 %}`.replace('0', productId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        designSystem.showNotification('Statut du produit modifié avec succès', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        designSystem.showNotification('Erreur lors du changement de statut', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    designSystem.showNotification('Erreur lors du changement de statut', 'error');
+                });
+            }
+        );
+    }
+
+    // Gestion des vues tableau/cartes
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableViewBtn = document.getElementById('tableView');
+        const cardViewBtn = document.getElementById('cardView');
+        const tableView = document.getElementById('table-view');
+        const cardView = document.getElementById('card-view');
+        
+        if (tableViewBtn && cardViewBtn && tableView && cardView) {
+            tableViewBtn.addEventListener('click', function() {
+                tableView.style.display = 'block';
+                cardView.style.display = 'none';
+                tableViewBtn.classList.remove('btn-secondary');
+                tableViewBtn.classList.add('btn-primary', 'active');
+                cardViewBtn.classList.remove('btn-primary', 'active');
+                cardViewBtn.classList.add('btn-secondary');
+            });
+            
+            cardViewBtn.addEventListener('click', function() {
+                tableView.style.display = 'none';
+                cardView.style.display = 'block';
+                cardViewBtn.classList.remove('btn-secondary');
+                cardViewBtn.classList.add('btn-primary', 'active');
+                tableViewBtn.classList.remove('btn-primary', 'active');
+                tableViewBtn.classList.add('btn-secondary');
+            });
+        }
+    });
+</script>
+
+<style>
+.product-image {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-sm);
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.btn-group .btn {
+    margin: 0 1px;
+}
+
+.btn-group .btn:first-child {
+    margin-left: 0;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+{% endblock %}

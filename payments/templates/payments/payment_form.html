@@ -1,0 +1,541 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Paiements - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-header {
+        background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #20c997;
+    }
+    .form-section h5 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .required-field {
+        color: #dc3545;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.2rem rgba(32, 201, 151, 0.25);
+    }
+    .btn-teal {
+        background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+        border: none;
+        color: white;
+    }
+    .btn-teal:hover {
+        background: linear-gradient(135deg, #1ea085 0%, #138496 100%);
+        color: white;
+    }
+    .invoice-preview {
+        background: #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="form-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-{% if payment %}pencil{% else %}plus-circle{% endif %}"></i>
+                    {{ title }}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if payment %}
+                        Modifiez les informations du paiement
+                    {% else %}
+                        Enregistrez un nouveau paiement
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% if payment %}{% url 'payments:payment_detail' payment.pk %}{% else %}{% url 'payments:payment_list' %}{% endif %}" 
+                   class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Informations de base -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-info-circle text-teal"></i>
+                        Informations de base
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.customer.id_for_label }}" class="form-label">
+                                {{ form.customer.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.customer }}
+                            {% if form.customer.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.customer.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <a href="{% url 'customers:customer_create' %}" target="_blank">
+                                    <i class="bi bi-plus-circle"></i> Créer un nouveau client
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.invoice.id_for_label }}" class="form-label">
+                                {{ form.invoice.label }}
+                            </label>
+                            {{ form.invoice }}
+                            {% if form.invoice.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.invoice.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Facture associée (optionnel)</div>
+                        </div>
+                    </div>
+
+                    <!-- Aperçu de la facture sélectionnée -->
+                    <div id="invoice-preview" class="invoice-preview">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong id="preview-invoice-number"></strong><br>
+                                <small class="text-muted" id="preview-invoice-date"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Total :</strong> <span id="preview-total"></span><br>
+                                <small class="text-muted">Payé : <span id="preview-paid"></span></small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <strong class="text-danger">Restant dû :</strong><br>
+                                <span id="preview-remaining" class="h6 text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Détails du paiement -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-credit-card text-teal"></i>
+                        Détails du paiement
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.amount.id_for_label }}" class="form-label">
+                                {{ form.amount.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            <div class="input-group">
+                                {{ form.amount }}
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.amount.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Montant reçu</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.payment_method.id_for_label }}" class="form-label">
+                                {{ form.payment_method.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.payment_method }}
+                            {% if form.payment_method.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.payment_method.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.payment_date.id_for_label }}" class="form-label">
+                                {{ form.payment_date.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.payment_date }}
+                            {% if form.payment_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.payment_date.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.reference.id_for_label }}" class="form-label">
+                                {{ form.reference.label }}
+                            </label>
+                            {{ form.reference }}
+                            {% if form.reference.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.reference.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Référence automatique si vide</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.transaction_id.id_for_label }}" class="form-label">
+                                {{ form.transaction_id.label }}
+                            </label>
+                            {{ form.transaction_id }}
+                            {% if form.transaction_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.transaction_id.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">ID de transaction (pour virements, cartes, etc.)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-chat-text text-teal"></i>
+                        Notes et commentaires
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                            {{ form.notes.label }}
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Notes internes ou détails complémentaires</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar avec informations supplémentaires -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle text-teal"></i>
+                            Informations
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if payment %}
+                            <div class="mb-3">
+                                <strong>Référence :</strong><br>
+                                <code>{{ payment.reference }}</code>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Créé le :</strong><br>
+                                <small class="text-muted">{{ payment.created_at|date:"d/m/Y à H:i" }}</small>
+                            </div>
+                            {% if payment.updated_at != payment.created_at %}
+                                <div class="mb-3">
+                                    <strong>Modifié le :</strong><br>
+                                    <small class="text-muted">{{ payment.updated_at|date:"d/m/Y à H:i" }}</small>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="bi bi-info-circle"></i>
+                                    La référence du paiement sera générée automatiquement si non spécifiée.
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Actions rapides -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-lightning text-warning"></i>
+                            Actions rapides
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="fillRemainingAmount()">
+                                <i class="bi bi-calculator"></i> Montant restant dû
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="setCurrentDateTime()">
+                                <i class="bi bi-clock"></i> Date/heure actuelles
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="generateReference()">
+                                <i class="bi bi-hash"></i> Générer référence
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aide -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-question-circle text-info"></i>
+                            Aide
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Les champs marqués d'un <span class="required-field">*</span> sont obligatoires
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Associer une facture met à jour automatiquement son statut
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Le montant ne peut pas dépasser le restant dû
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    L'ID de transaction est utile pour la traçabilité
+                                </li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Méthodes de paiement -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-credit-card text-info"></i>
+                            Méthodes de paiement
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-1"><i class="bi bi-cash-stack text-success"></i> Espèces</li>
+                                <li class="mb-1"><i class="bi bi-file-earmark-check text-info"></i> Chèque</li>
+                                <li class="mb-1"><i class="bi bi-bank text-primary"></i> Virement bancaire</li>
+                                <li class="mb-1"><i class="bi bi-credit-card text-warning"></i> Carte bancaire</li>
+                                <li class="mb-1"><i class="bi bi-phone text-danger"></i> Mobile Money</li>
+                                <li class="mb-1"><i class="bi bi-wallet text-secondary"></i> Autre</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <a href="{% if payment %}{% url 'payments:payment_detail' payment.pk %}{% else %}{% url 'payments:payment_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-teal btn-lg">
+                        <i class="bi bi-check-circle"></i> {{ submit_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerField = document.getElementById('{{ form.customer.id_for_label }}');
+        const invoiceField = document.getElementById('{{ form.invoice.id_for_label }}');
+        const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+        const paymentDateField = document.getElementById('{{ form.payment_date.id_for_label }}');
+        const referenceField = document.getElementById('{{ form.reference.id_for_label }}');
+        const transactionIdField = document.getElementById('{{ form.transaction_id.id_for_label }}');
+        const invoicePreview = document.getElementById('invoice-preview');
+        
+        let invoiceData = {};
+        
+        // Chargement des données de facture via AJAX
+        function loadInvoiceData(invoiceId) {
+            if (!invoiceId) {
+                invoicePreview.style.display = 'none';
+                return;
+            }
+            
+            // Simuler le chargement des données de facture
+            // En production, ceci ferait un appel AJAX vers une API
+            fetch(`/api/invoices/${invoiceId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    invoiceData = data;
+                    updateInvoicePreview();
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement de la facture:', error);
+                    // Données simulées pour la démo
+                    invoiceData = {
+                        invoice_number: 'FAC-2024-001',
+                        invoice_date: '2024-01-15',
+                        total_amount: 100000,
+                        paid_amount: 0,
+                        remaining_amount: 100000
+                    };
+                    updateInvoicePreview();
+                });
+        }
+        
+        function updateInvoicePreview() {
+            if (!invoiceData.invoice_number) return;
+            
+            document.getElementById('preview-invoice-number').textContent = invoiceData.invoice_number;
+            document.getElementById('preview-invoice-date').textContent = new Date(invoiceData.invoice_date).toLocaleDateString('fr-FR');
+            document.getElementById('preview-total').textContent = `${invoiceData.total_amount} FCFA`;
+            document.getElementById('preview-paid').textContent = `${invoiceData.paid_amount} FCFA`;
+            document.getElementById('preview-remaining').textContent = `${invoiceData.remaining_amount} FCFA`;
+            
+            invoicePreview.style.display = 'block';
+        }
+        
+        // Actions rapides
+        window.fillRemainingAmount = function() {
+            if (invoiceData.remaining_amount) {
+                amountField.value = invoiceData.remaining_amount;
+                amountField.focus();
+            } else {
+                alert('Veuillez d\'abord sélectionner une facture');
+            }
+        };
+        
+        window.setCurrentDateTime = function() {
+            const now = new Date();
+            const isoString = now.toISOString().slice(0, 16); // Format YYYY-MM-DDTHH:MM
+            paymentDateField.value = isoString;
+        };
+        
+        window.generateReference = function() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const time = String(now.getTime()).slice(-6); // Derniers 6 chiffres du timestamp
+            
+            const reference = `PAY-${year}${month}${day}-${time}`;
+            referenceField.value = reference;
+        };
+        
+        // Événements
+        invoiceField.addEventListener('change', function() {
+            loadInvoiceData(this.value);
+        });
+        
+        customerField.addEventListener('change', function() {
+            // Filtrer les factures par client si nécessaire
+            const customerId = this.value;
+            if (customerId && invoiceField) {
+                // Ici on pourrait filtrer les options de facture par client
+                console.log('Client sélectionné:', customerId);
+            }
+        });
+        
+        // Validation côté client
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            const requiredFields = form.querySelectorAll('[required]');
+            
+            requiredFields.forEach(function(field) {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            // Validation du montant
+            const amount = parseFloat(amountField.value);
+            if (amount <= 0) {
+                amountField.classList.add('is-invalid');
+                isValid = false;
+                alert('Le montant doit être supérieur à 0');
+            }
+            
+            // Validation par rapport au restant dû
+            if (invoiceData.remaining_amount && amount > invoiceData.remaining_amount) {
+                amountField.classList.add('is-invalid');
+                isValid = false;
+                alert(`Le montant ne peut pas dépasser le restant dû (${invoiceData.remaining_amount} FCFA)`);
+            }
+            
+            // Validation de la date
+            if (paymentDateField.value) {
+                const paymentDate = new Date(paymentDateField.value);
+                const now = new Date();
+                if (paymentDate > now) {
+                    paymentDateField.classList.add('is-invalid');
+                    isValid = false;
+                    alert('La date de paiement ne peut pas être dans le futur');
+                }
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Veuillez corriger les erreurs dans le formulaire');
+            }
+        });
+        
+        // Auto-formatage des champs numériques
+        amountField.addEventListener('input', function(e) {
+            // Supprimer les caractères non numériques (sauf le point décimal)
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            // S'assurer qu'il n'y a qu'un seul point décimal
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            e.target.value = value;
+        });
+        
+        // Initialisation
+        {% if not payment %}
+            setCurrentDateTime();
+        {% endif %}
+        
+        // Chargement initial si modification avec facture
+        {% if payment and payment.invoice %}
+            loadInvoiceData({{ payment.invoice.pk }});
+        {% endif %}
+    });
+</script>
+{% endblock %}

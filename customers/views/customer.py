@@ -121,10 +121,13 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('customers:customer_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        customer = form.save()
-        messages.success(self.request, f'Client "{customer.full_name}" créé avec succès.')
-        return redirect('customers:customer_detail', pk=customer.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Client "{self.object.full_name}" créé avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la création du client. Veuillez corriger les erreurs.')
@@ -150,10 +153,13 @@ class CustomerUpdateView(LoginRequiredMixin, UpdateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('customers:customer_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        customer = form.save()
-        messages.success(self.request, f'Client "{customer.full_name}" modifié avec succès.')
-        return redirect('customers:customer_detail', pk=customer.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Client "{self.object.full_name}" modifié avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification du client. Veuillez corriger les erreurs.')

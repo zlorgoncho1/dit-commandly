@@ -1,0 +1,51 @@
+<!-- Composant boutons d'action réutilisable -->
+<!-- Usage: {% include 'components/action_buttons.html' with actions=action_list %} -->
+
+<div class="d-flex flex-wrap gap-2 align-items-center">
+    {% for action in actions %}
+        {% if action.type == 'primary' %}
+            <a href="{{ action.url }}" class="btn btn-primary d-flex align-items-center" 
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% elif action.type == 'secondary' %}
+            <a href="{{ action.url }}" class="btn btn-secondary d-flex align-items-center"
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% elif action.type == 'success' %}
+            <a href="{{ action.url }}" class="btn btn-success d-flex align-items-center"
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% elif action.type == 'warning' %}
+            <a href="{{ action.url }}" class="btn btn-warning d-flex align-items-center"
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% elif action.type == 'danger' %}
+            <a href="{{ action.url }}" class="btn btn-danger d-flex align-items-center"
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% else %}
+            <!-- Default button -->
+            <a href="{{ action.url }}" class="btn btn-primary d-flex align-items-center"
+               {% if action.confirm %}data-confirm="{{ action.confirm }}"{% endif %}
+               {% if action.tooltip %}data-tooltip="{{ action.tooltip }}"{% endif %}>
+                {% if action.icon %}<i class="bi bi-{{ action.icon }} me-2"></i>{% endif %}
+                {{ action.label }}
+            </a>
+        {% endif %}
+    {% endfor %}
+</div>

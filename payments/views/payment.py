@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum
 from django.http import JsonResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from payments.models import Payment
 from payments.forms.payment_forms import PaymentForm, PaymentSearchForm
@@ -137,10 +137,13 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('payments:payment_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        payment = form.save()
-        messages.success(self.request, f'Paiement "{payment.reference}" créé avec succès.')
-        return redirect('payments:payment_detail', pk=payment.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Paiement "{self.object.reference}" créé avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la création du paiement. Veuillez corriger les erreurs.')
@@ -166,10 +169,13 @@ class PaymentUpdateView(LoginRequiredMixin, UpdateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('payments:payment_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        payment = form.save()
-        messages.success(self.request, f'Paiement "{payment.reference}" modifié avec succès.')
-        return redirect('payments:payment_detail', pk=payment.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Paiement "{self.object.reference}" modifié avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification du paiement. Veuillez corriger les erreurs.')

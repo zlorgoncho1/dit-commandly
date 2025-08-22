@@ -1,0 +1,195 @@
+{% comment %}
+Composant de badge de statut réutilisable
+Usage: {% include 'components/status_badge.html' with status=object.status type='order' %}
+Types supportés: order, invoice, payment, customer, product, general
+{% endcomment %}
+
+{% load static %}
+
+{% if type == 'order' %}
+    {% if status == 'pending' %}
+        <span class="badge bg-info status-badge">
+            <i class="bi bi-clock"></i> En attente
+        </span>
+    {% elif status == 'confirmed' %}
+        <span class="badge bg-primary status-badge">
+            <i class="bi bi-check-circle"></i> Confirmée
+        </span>
+    {% elif status == 'in_progress' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-gear"></i> En cours
+        </span>
+    {% elif status == 'delivered' %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-truck"></i> Livrée
+        </span>
+    {% elif status == 'cancelled' %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-x-circle"></i> Annulée
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'invoice' %}
+    {% if status == 'draft' %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-file-earmark"></i> Brouillon
+        </span>
+    {% elif status == 'sent' %}
+        <span class="badge bg-info status-badge">
+            <i class="bi bi-send"></i> Envoyée
+        </span>
+    {% elif status == 'paid' %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle-fill"></i> Payée
+        </span>
+    {% elif status == 'partially_paid' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-clock-history"></i> Partiellement payée
+        </span>
+    {% elif status == 'overdue' %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-exclamation-triangle"></i> En retard
+        </span>
+    {% elif status == 'cancelled' %}
+        <span class="badge bg-dark status-badge">
+            <i class="bi bi-x-circle"></i> Annulée
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'payment' %}
+    {% if status == 'pending' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-clock"></i> En attente
+        </span>
+    {% elif status == 'completed' %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle-fill"></i> Complété
+        </span>
+    {% elif status == 'failed' %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-x-circle"></i> Échoué
+        </span>
+    {% elif status == 'refunded' %}
+        <span class="badge bg-info status-badge">
+            <i class="bi bi-arrow-counterclockwise"></i> Remboursé
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'customer' %}
+    {% if status == 'active' or status == True %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-person-check"></i> Actif
+        </span>
+    {% elif status == 'inactive' or status == False %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-person-x"></i> Inactif
+        </span>
+    {% elif status == 'suspended' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-person-dash"></i> Suspendu
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'product' %}
+    {% if status == 'active' or status == True %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle"></i> Actif
+        </span>
+    {% elif status == 'inactive' or status == False %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-x-circle"></i> Inactif
+        </span>
+    {% elif status == 'discontinued' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-archive"></i> Arrêté
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'stock' %}
+    {% if status == 'available' or status > 0 %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle"></i> Disponible
+        </span>
+    {% elif status == 'low' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-exclamation-triangle"></i> Stock faible
+        </span>
+    {% elif status == 'out' or status == 0 %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-x-circle"></i> Rupture
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% elif type == 'priority' %}
+    {% if status == 'low' %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-arrow-down"></i> Faible
+        </span>
+    {% elif status == 'medium' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-dash"></i> Moyenne
+        </span>
+    {% elif status == 'high' %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-arrow-up"></i> Élevée
+        </span>
+    {% elif status == 'critical' %}
+        <span class="badge bg-dark status-badge">
+            <i class="bi bi-exclamation-triangle-fill"></i> Critique
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-question-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+
+{% else %}
+    <!-- Type général ou non spécifié -->
+    {% if status == 'active' or status == True %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle"></i> Actif
+        </span>
+    {% elif status == 'inactive' or status == False %}
+        <span class="badge bg-danger status-badge">
+            <i class="bi bi-x-circle"></i> Inactif
+        </span>
+    {% elif status == 'pending' %}
+        <span class="badge bg-warning status-badge">
+            <i class="bi bi-clock"></i> En attente
+        </span>
+    {% elif status == 'completed' %}
+        <span class="badge bg-success status-badge">
+            <i class="bi bi-check-circle-fill"></i> Terminé
+        </span>
+    {% else %}
+        <span class="badge bg-secondary status-badge">
+            <i class="bi bi-circle"></i> {{ status|capfirst }}
+        </span>
+    {% endif %}
+{% endif %}
+
+<!-- Le style est maintenant géré par le design system centralisé -->

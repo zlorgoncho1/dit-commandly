@@ -1,0 +1,335 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ order.order_number }} - Commandes - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .warning-card {
+        border-left: 4px solid #dc3545;
+        background: #fff5f5;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .order-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de suppression -->
+    <div class="delete-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="order-icon-large me-4">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Supprimer la commande</h1>
+                        <p class="mb-0 opacity-75">
+                            Vous êtes sur le point de supprimer définitivement cette commande
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations de la commande -->
+        <div class="col-lg-6">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Commande à supprimer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>N° Commande :</strong></div>
+                        <div class="col-sm-7">{{ order.order_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Client :</strong></div>
+                        <div class="col-sm-7">{{ order.customer.display_name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Date :</strong></div>
+                        <div class="col-sm-7">{{ order.order_date|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Statut :</strong></div>
+                        <div class="col-sm-7">
+                            {% include 'components/status_badge.html' with status=order.status status_display=order.get_status_display %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Montant :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="h6 text-success">{{ order.total_amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Nb. articles :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="badge bg-primary">{{ order.items.count }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Créée le :</strong></div>
+                        <div class="col-sm-7">{{ order.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lignes de commande -->
+            {% if order.items.exists %}
+                <div class="card info-card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul text-primary"></i>
+                            Articles de la commande
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            {% for item in order.items.all|slice:":5" %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-{% if item.product.product_type == 'service' %}gear{% else %}box{% endif %} text-muted me-2"></i>
+                                        <div class="flex-grow-1">
+                                            <strong>{{ item.product.name }}</strong>
+                                            {% if item.product.sku %}
+                                                <small class="text-muted">({{ item.product.sku }})</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-secondary">{{ item.quantity }}</span>
+                                            <br><small class="text-muted">{{ item.subtotal|floatformat:0 }} FCFA</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            {% if order.items.count > 5 %}
+                                <div class="list-group-item px-0 text-center">
+                                    <small class="text-muted">
+                                        ... et {{ order.items.count|add:"-5" }} autre{{ order.items.count|add:"-5"|pluralize }} article{{ order.items.count|add:"-5"|pluralize }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Avertissements et confirmation -->
+        <div class="col-lg-6">
+            {% if has_invoice %}
+                <!-- Avertissement si la commande a une facture -->
+                <div class="card warning-card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Suppression impossible
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            <strong>Cette commande ne peut pas être supprimée</strong> car elle est associée à une facture.
+                        </p>
+                        
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-receipt"></i> Facture associée :</h6>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ order.invoice.invoice_number }}</strong><br>
+                                    <small>{{ order.invoice.invoice_date|date:"d/m/Y" }} - {{ order.invoice.get_status_display }}</small>
+                                </div>
+                                <a href="{% url 'invoices:invoice_detail' order.invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Voir
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6><i class="bi bi-lightbulb"></i> Solutions possibles :</h6>
+                            <ul class="mb-0">
+                                <li>Supprimez d'abord la facture associée</li>
+                                <li>Annulez la commande au lieu de la supprimer</li>
+                                <li>Contactez l'administrateur si nécessaire</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Confirmation de suppression -->
+                <div class="card warning-card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Confirmation de suppression
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            Êtes-vous sûr de vouloir supprimer définitivement la commande 
+                            <strong>"{{ order.order_number }}"</strong> ?
+                        </p>
+                        
+                        <div class="alert alert-danger">
+                            <h6><i class="bi bi-exclamation-circle"></i> Attention :</h6>
+                            <ul class="mb-0">
+                                <li>Cette action est <strong>irréversible</strong></li>
+                                <li>La commande et tous ses articles seront supprimés</li>
+                                <li>Les données ne pourront pas être récupérées</li>
+                                {% if order.items.exists %}
+                                    <li>{{ order.items.count }} article{{ order.items.count|pluralize }} sera{{ order.items.count|pluralize:"nt" }} supprimé{{ order.items.count|pluralize }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        {% if order.status == 'delivered' %}
+                            <div class="alert alert-warning">
+                                <h6><i class="bi bi-info-circle"></i> Information :</h6>
+                                <p class="mb-0">Cette commande a été livrée. Êtes-vous sûr de vouloir la supprimer ?</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Alternatives à la suppression -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb text-warning"></i>
+                        Alternatives à la suppression
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if order.status != 'cancelled' %}
+                            <button class="btn btn-outline-warning" onclick="updateOrderStatus('cancelled')">
+                                <i class="bi bi-x-circle"></i> Annuler la commande
+                            </button>
+                        {% endif %}
+                        <a href="{% url 'orders:order_update' order.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Modifier la commande
+                        </a>
+                        <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-outline-info">
+                            <i class="bi bi-eye"></i> Voir les détails
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour aux détails
+                </a>
+                
+                <div>
+                    {% if not can_delete %}
+                        <!-- Boutons alternatifs si suppression impossible -->
+                        <a href="{% url 'orders:order_update' order.pk %}" class="btn btn-warning me-2">
+                            <i class="bi bi-pencil"></i> Modifier la commande
+                        </a>
+                        <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-list"></i> Liste des commandes
+                        </a>
+                    {% else %}
+                        <!-- Bouton de suppression si possible -->
+                        <a href="{% url 'orders:order_list' %}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('Êtes-vous absolument sûr de vouloir supprimer cette commande et tous ses articles ?')">
+                                <i class="bi bi-trash"></i> Supprimer définitivement
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateOrderStatus(newStatus) {
+        if (confirm('Voulez-vous annuler cette commande au lieu de la supprimer ?')) {
+            fetch(`{% url 'orders:order_status_update' order.pk %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Commande annulée avec succès');
+                    window.location.href = "{% url 'orders:order_detail' order.pk %}";
+                } else {
+                    alert('Erreur lors de l\'annulation: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de l\'annulation');
+            });
+        }
+    }
+
+    // Animation d'avertissement pour les boutons dangereux
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteBtn = document.querySelector('.btn-danger');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('mouseenter', function() {
+                this.classList.add('animate__animated', 'animate__pulse');
+            });
+            deleteBtn.addEventListener('mouseleave', function() {
+                this.classList.remove('animate__animated', 'animate__pulse');
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,427 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Paiement {{ payment.reference }} - Paiements - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-header {
+        background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .payment-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+    .method-cash { color: #28a745; }
+    .method-check { color: #17a2b8; }
+    .method-bank_transfer { color: #6f42c1; }
+    .method-card { color: #fd7e14; }
+    .method-mobile_money { color: #e83e8c; }
+    .method-other { color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête du paiement -->
+    <div class="payment-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="payment-icon-large me-4">
+                        <i class="bi bi-credit-card"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Paiement {{ payment.reference }}</h1>
+                        <p class="mb-1 opacity-75">{{ payment.customer.display_name }}</p>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                {{ payment.payment_date|date:"d/m/Y à H:i" }}
+                            </span>
+                            <span class="badge bg-info">
+                                {{ payment.get_payment_method_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'payments:payment_update' payment.pk %}" class="btn btn-light">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            {% if payment.invoice %}
+                                <li><a class="dropdown-item" href="{% url 'invoices:invoice_detail' payment.invoice.pk %}">
+                                    <i class="bi bi-receipt"></i> Voir la facture
+                                </a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{% url 'customers:customer_detail' payment.customer.pk %}">
+                                <i class="bi bi-person"></i> Voir le client
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'payments:payment_delete' payment.pk %}">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </a></li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'payments:payment_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations du paiement -->
+        <div class="col-lg-4">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Référence :</strong></div>
+                        <div class="col-sm-7">{{ payment.reference }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Client :</strong></div>
+                        <div class="col-sm-7">
+                            <a href="{% url 'customers:customer_detail' payment.customer.pk %}">
+                                {{ payment.customer.display_name }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Date :</strong></div>
+                        <div class="col-sm-7">{{ payment.payment_date|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Montant :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="h5 text-success">{{ payment.amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Méthode :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="badge bg-info fs-6">{{ payment.get_payment_method_display }}</span>
+                        </div>
+                    </div>
+                    {% if payment.invoice %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Facture :</strong></div>
+                            <div class="col-sm-7">
+                                <a href="{% url 'invoices:invoice_detail' payment.invoice.pk %}">
+                                    {{ payment.invoice.invoice_number }}
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if payment.transaction_id %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Transaction :</strong></div>
+                            <div class="col-sm-7">
+                                <code>{{ payment.transaction_id }}</code>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Créé le :</strong></div>
+                        <div class="col-sm-7">{{ payment.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    {% if payment.updated_at != payment.created_at %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Modifié le :</strong></div>
+                            <div class="col-sm-7">{{ payment.updated_at|date:"d/m/Y à H:i" }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notes -->
+            {% if payment.notes %}
+                <div class="card info-card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-chat-text text-primary"></i>
+                            Notes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">{{ payment.notes|linebreaks }}</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Statistiques -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="stat-card bg-success text-white">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-{% if payment.payment_method == 'cash' %}cash-stack{% elif payment.payment_method == 'check' %}file-earmark-check{% elif payment.payment_method == 'bank_transfer' %}bank{% elif payment.payment_method == 'card' %}credit-card{% elif payment.payment_method == 'mobile_money' %}phone{% else %}wallet{% endif %} fs-1 me-3"></i>
+                            <div>
+                                <h4>{{ payment.amount|floatformat:0 }} FCFA</h4>
+                                <small>{{ payment.get_payment_method_display }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Détails et contexte -->
+        <div class="col-lg-8">
+            <!-- Facture associée -->
+            {% if payment.invoice %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-receipt text-primary"></i>
+                            Facture associée
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="row mb-3">
+                                    <div class="col-sm-5"><strong>N° Facture :</strong></div>
+                                    <div class="col-sm-7">
+                                        <a href="{% url 'invoices:invoice_detail' invoice.pk %}">
+                                            {{ invoice.invoice_number }}
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-5"><strong>Date facture :</strong></div>
+                                    <div class="col-sm-7">{{ invoice.invoice_date|date:"d/m/Y" }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-5"><strong>Échéance :</strong></div>
+                                    <div class="col-sm-7">{{ invoice.due_date|date:"d/m/Y" }}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-5"><strong>Statut :</strong></div>
+                                    <div class="col-sm-7">
+                                        {% include 'components/status_badge.html' with status=invoice.status status_display=invoice.get_status_display %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="row mb-3">
+                                    <div class="col-sm-6"><strong>Total facture :</strong></div>
+                                    <div class="col-sm-6 text-end">{{ invoice.total_amount|floatformat:0 }} FCFA</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-6"><strong>Total payé :</strong></div>
+                                    <div class="col-sm-6 text-end text-primary">{{ invoice.paid_amount|floatformat:0 }} FCFA</div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-6"><strong>Restant dû :</strong></div>
+                                    <div class="col-sm-6 text-end">
+                                        <span class="{% if invoice.remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ invoice.remaining_amount|floatformat:0 }} FCFA
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Impact de ce paiement -->
+                        <div class="alert alert-info mt-3">
+                            <h6><i class="bi bi-calculator"></i> Impact de ce paiement :</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Montant du paiement :</strong><br>
+                                    <span class="text-success">{{ payment.amount|floatformat:0 }} FCFA</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>% de la facture :</strong><br>
+                                    <span class="text-info">{{ payment.amount|div:invoice.total_amount|mul:100|floatformat:1 }}%</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Statut après paiement :</strong><br>
+                                    {% if invoice.remaining_amount == 0 %}
+                                        <span class="badge bg-success">Entièrement payée</span>
+                                    {% elif invoice.remaining_amount < invoice.total_amount %}
+                                        <span class="badge bg-warning">Partiellement payée</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">En attente</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <a href="{% url 'invoices:invoice_detail' invoice.pk %}" class="btn btn-outline-primary">
+                                <i class="bi bi-eye"></i> Voir tous les détails de la facture
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Autres paiements du client -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history text-primary"></i>
+                        Autres paiements de {{ customer.display_name }}
+                        <span class="badge bg-primary">{{ customer.payments.count|add:"-1" }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if customer.payments.count > 1 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Référence</th>
+                                        <th>Date</th>
+                                        <th>Facture</th>
+                                        <th>Méthode</th>
+                                        <th class="text-end">Montant</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for other_payment in customer.payments.all %}
+                                        {% if other_payment != payment %}
+                                            <tr {% if forloop.counter0 >= 5 %}class="d-none"{% endif %}>
+                                                <td>
+                                                    <strong>{{ other_payment.reference }}</strong>
+                                                    {% if other_payment == payment %}
+                                                        <span class="badge bg-warning ms-1">Actuel</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ other_payment.payment_date|date:"d/m/Y" }}</td>
+                                                <td>
+                                                    {% if other_payment.invoice %}
+                                                        <a href="{% url 'invoices:invoice_detail' other_payment.invoice.pk %}">
+                                                            {{ other_payment.invoice.invoice_number }}
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-muted">Aucune</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ other_payment.get_payment_method_display }}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="text-success">{{ other_payment.amount|floatformat:0 }} FCFA</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <a href="{% url 'payments:payment_detail' other_payment.pk %}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% if customer.payments.count > 6 %}
+                            <div class="text-center mt-3">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleMorePayments()">
+                                    <i class="bi bi-chevron-down"></i> Voir plus de paiements
+                                </button>
+                            </div>
+                        {% endif %}
+
+                        <div class="text-center mt-3">
+                            <a href="{% url 'payments:payment_list' %}?customer={{ customer.pk }}" class="btn btn-outline-primary">
+                                Voir tous les paiements de ce client
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-credit-card display-4 text-muted"></i>
+                            <h5 class="mt-3">Premier paiement</h5>
+                            <p class="text-muted">C'est le premier paiement enregistré pour ce client.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleMorePayments() {
+        const hiddenRows = document.querySelectorAll('tr.d-none');
+        const button = document.querySelector('button[onclick="toggleMorePayments()"]');
+        
+        hiddenRows.forEach(row => {
+            if (row.classList.contains('d-none')) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        });
+        
+        const icon = button.querySelector('i');
+        if (icon.classList.contains('bi-chevron-down')) {
+            icon.classList.remove('bi-chevron-down');
+            icon.classList.add('bi-chevron-up');
+            button.innerHTML = '<i class="bi bi-chevron-up"></i> Voir moins de paiements';
+        } else {
+            icon.classList.remove('bi-chevron-up');
+            icon.classList.add('bi-chevron-down');
+            button.innerHTML = '<i class="bi bi-chevron-down"></i> Voir plus de paiements';
+        }
+    }
+
+    // Calculs et informations pour le développement
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentAmount = {{ payment.amount }};
+        {% if payment.invoice %}
+            const invoiceTotal = {{ invoice.total_amount }};
+            const percentage = (paymentAmount / invoiceTotal * 100).toFixed(1);
+            console.log('Paiement:', {
+                amount: paymentAmount,
+                invoiceTotal: invoiceTotal,
+                percentage: percentage + '%',
+                method: '{{ payment.payment_method }}',
+                reference: '{{ payment.reference }}'
+            });
+        {% endif %}
+    });
+</script>
+{% endblock %}

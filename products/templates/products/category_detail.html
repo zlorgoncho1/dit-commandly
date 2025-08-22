@@ -1,0 +1,243 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ category.name }} - Catégories - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .category-header {
+        background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .category-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de la catégorie -->
+    <div class="category-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="category-icon-large me-4">
+                        <i class="bi bi-tags"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">{{ category.name }}</h1>
+                        {% if category.description %}
+                            <p class="mb-1 opacity-75">{{ category.description }}</p>
+                        {% endif %}
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-{% if category.is_active %}success{% else %}danger{% endif %}">
+                                {% if category.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'products:category_update' category.pk %}" class="btn btn-light">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <a href="{% url 'products:category_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations de la catégorie -->
+        <div class="col-lg-4">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Nom :</strong></div>
+                        <div class="col-sm-8">{{ category.name }}</div>
+                    </div>
+                    {% if category.description %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Description :</strong></div>
+                            <div class="col-sm-8">{{ category.description }}</div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Statut :</strong></div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-{% if category.is_active %}success{% else %}danger{% endif %}">
+                                {% if category.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Créée le :</strong></div>
+                        <div class="col-sm-8">{{ category.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    {% if category.updated_at != category.created_at %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Modifiée le :</strong></div>
+                            <div class="col-sm-8">{{ category.updated_at|date:"d/m/Y à H:i" }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Statistiques rapides -->
+            <div class="row">
+                <div class="col-6">
+                    <div class="stat-card bg-primary text-white">
+                        <h4>{{ total_products|default:0 }}</h4>
+                        <small>Produits</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-success text-white">
+                        <h4>{{ active_products|default:0 }}</h4>
+                        <small>Actifs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des produits -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box text-primary"></i>
+                        Produits de cette catégorie
+                        <span class="badge bg-primary">{{ products|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th>SKU</th>
+                                        <th>Type</th>
+                                        <th class="text-end">Prix</th>
+                                        <th>Stock</th>
+                                        <th>Statut</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in products %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %} text-muted"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ product.name }}</strong>
+                                                        {% if product.description %}
+                                                            <br><small class="text-muted">{{ product.description|truncatechars:50 }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if product.sku %}
+                                                    <code>{{ product.sku }}</code>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ product.get_product_type_display }}</span>
+                                            </td>
+                                            <td class="text-end">{{ product.unit_price|floatformat:0 }} FCFA</td>
+                                            <td>
+                                                {% if product.product_type == 'product' %}
+                                                    {% if product.stock_quantity > product.min_stock_level %}
+                                                        <span class="badge bg-success">{{ product.stock_quantity }}</span>
+                                                    {% elif product.stock_quantity > 0 %}
+                                                        <span class="badge bg-warning">{{ product.stock_quantity }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Rupture</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if product.is_active %}success{% else %}danger{% endif %}">
+                                                    {% if product.is_active %}Actif{% else %}Inactif{% endif %}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'products:product_detail' product.pk %}" 
+                                                       class="btn btn-outline-primary" title="Voir détails">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <a href="{% url 'products:product_update' product.pk %}" 
+                                                       class="btn btn-outline-warning" title="Modifier">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'products:product_list' %}?category={{ category.pk }}" class="btn btn-outline-primary">
+                                Voir tous les produits de cette catégorie
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-box display-4 text-muted"></i>
+                            <h5 class="mt-3">Aucun produit</h5>
+                            <p class="text-muted">Cette catégorie ne contient pas encore de produit.</p>
+                            <a href="{% url 'products:product_create' %}?category={{ category.pk }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Ajouter un produit
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

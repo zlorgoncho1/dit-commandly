@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q, Sum
 from django.http import JsonResponse, HttpResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django.views import View as BaseView
 from invoices.models import Invoice
@@ -166,10 +166,13 @@ class InvoiceCreateView(LoginRequiredMixin, CreateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('invoices:invoice_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        invoice = form.save()
-        messages.success(self.request, f'Facture "{invoice.invoice_number}" créée avec succès.')
-        return redirect('invoices:invoice_detail', pk=invoice.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Facture "{self.object.invoice_number}" créée avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la création de la facture. Veuillez corriger les erreurs.')
@@ -195,10 +198,13 @@ class InvoiceUpdateView(LoginRequiredMixin, UpdateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('invoices:invoice_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        invoice = form.save()
-        messages.success(self.request, f'Facture "{invoice.invoice_number}" modifiée avec succès.')
-        return redirect('invoices:invoice_detail', pk=invoice.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Facture "{self.object.invoice_number}" modifiée avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification de la facture. Veuillez corriger les erreurs.')

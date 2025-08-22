@@ -1,0 +1,390 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Produits - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .stock-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .stock-good { background: #28a745; }
+    .stock-low { background: #ffc107; }
+    .stock-out { background: #dc3545; }
+    
+    .product-image-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 48px;
+        border: 4px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête du produit -->
+    <div class="product-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="product-image-large me-4">
+                        <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">{{ product.name }}</h1>
+                        {% if product.sku %}
+                            <p class="mb-1 opacity-75">SKU: {{ product.sku }}</p>
+                        {% endif %}
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                {{ product.get_product_type_display }}
+                            </span>
+                            {% if product.category %}
+                                <span class="badge bg-info me-2">{{ product.category.name }}</span>
+                            {% endif %}
+                            <span class="badge bg-{% if product.is_active %}success{% else %}danger{% endif %}">
+                                {% if product.is_active %}Actif{% else %}Inactif{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'products:product_update' product.pk %}" class="btn btn-light">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <button type="button" 
+                            class="btn btn-{% if product.is_active %}outline-light{% else %}light{% endif %}"
+                            onclick="toggleProductStatus({{ product.pk }}, '{{ product.is_active|yesno:'true,false' }}')"
+                            title="{% if product.is_active %}Désactiver{% else %}Activer{% endif %}">
+                        <i class="bi bi-{% if product.is_active %}x-circle{% else %}check-circle{% endif %}"></i>
+                        {% if product.is_active %}Désactiver{% else %}Activer{% endif %}
+                    </button>
+                    <a href="{% url 'products:product_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations du produit -->
+        <div class="col-lg-4">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Nom :</strong></div>
+                        <div class="col-sm-8">{{ product.name }}</div>
+                    </div>
+                    {% if product.sku %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>SKU :</strong></div>
+                            <div class="col-sm-8"><code>{{ product.sku }}</code></div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Type :</strong></div>
+                        <div class="col-sm-8">{{ product.get_product_type_display }}</div>
+                    </div>
+                    {% if product.category %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Catégorie :</strong></div>
+                            <div class="col-sm-8">
+                                <a href="{% url 'products:category_detail' product.category.pk %}">
+                                    {{ product.category.name }}
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Prix :</strong></div>
+                        <div class="col-sm-8">
+                            <span class="h5 text-success">{{ product.unit_price|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    {% if product.tax_rate %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Taux TVA :</strong></div>
+                            <div class="col-sm-8">{{ product.tax_rate }}%</div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Créé le :</strong></div>
+                        <div class="col-sm-8">{{ product.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    {% if product.updated_at != product.created_at %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Modifié le :</strong></div>
+                            <div class="col-sm-8">{{ product.updated_at|date:"d/m/Y à H:i" }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Gestion du stock (si produit physique) -->
+            {% if product.product_type == 'product' %}
+                <div class="card info-card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-box-seam text-primary"></i>
+                            Gestion du Stock
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Stock actuel :</strong></div>
+                            <div class="col-sm-8">
+                                {% if product.stock_quantity > product.min_stock_level %}
+                                    <span class="stock-indicator stock-good"></span>
+                                    <span class="text-success">{{ product.stock_quantity }} unités</span>
+                                {% elif product.stock_quantity > 0 %}
+                                    <span class="stock-indicator stock-low"></span>
+                                    <span class="text-warning">{{ product.stock_quantity }} unités (Faible)</span>
+                                {% else %}
+                                    <span class="stock-indicator stock-out"></span>
+                                    <span class="text-danger">Rupture de stock</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Seuil minimum :</strong></div>
+                            <div class="col-sm-8">{{ product.min_stock_level }} unités</div>
+                        </div>
+                        
+                        <!-- Actions rapides sur le stock -->
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    onclick="showStockUpdateModal()">
+                                <i class="bi bi-pencil"></i> Modifier le stock
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Statistiques rapides -->
+            <div class="row">
+                <div class="col-6">
+                    <div class="stat-card bg-primary text-white">
+                        <h4>{{ total_orders|default:0 }}</h4>
+                        <small>Commandes</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-success text-white">
+                        <h4>{{ total_quantity_ordered|default:0 }}</h4>
+                        <small>Quantité vendue</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description et historique -->
+        <div class="col-lg-8">
+            <!-- Description -->
+            {% if product.description %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-file-text text-primary"></i>
+                            Description
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">{{ product.description|linebreaks }}</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Historique des commandes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history text-primary"></i>
+                        Historique des Commandes
+                        <span class="badge bg-primary">{{ order_items|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if order_items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>N° Commande</th>
+                                        <th>Client</th>
+                                        <th>Date</th>
+                                        <th>Quantité</th>
+                                        <th>Prix unitaire</th>
+                                        <th class="text-end">Sous-total</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order_items %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ item.order.order_number }}</strong>
+                                            </td>
+                                            <td>{{ item.order.customer.display_name }}</td>
+                                            <td>{{ item.order.order_date|date:"d/m/Y" }}</td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>{{ item.unit_price|floatformat:0 }} FCFA</td>
+                                            <td class="text-end">{{ item.subtotal|floatformat:0 }} FCFA</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'orders:order_detail' item.order.pk %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if total_orders > 10 %}
+                            <div class="text-center mt-3">
+                                <a href="{% url 'orders:order_list' %}?product={{ product.pk }}" class="btn btn-outline-primary">
+                                    Voir toutes les commandes avec ce produit
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-list-check display-4 text-muted"></i>
+                            <h5 class="mt-3">Aucune commande</h5>
+                            <p class="text-muted">Ce produit n'a pas encore été commandé.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de mise à jour du stock -->
+{% if product.product_type == 'product' %}
+<div class="modal fade" id="stockUpdateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le stock - {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="stockUpdateForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newStock" class="form-label">Nouveau stock</label>
+                        <input type="number" class="form-control" id="newStock" 
+                               value="{{ product.stock_quantity }}" min="0" required>
+                        <div class="form-text">Stock actuel: {{ product.stock_quantity }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleProductStatus(productId, currentStatus) {
+        if (confirm('Êtes-vous sûr de vouloir changer le statut de ce produit ?')) {
+            fetch(`{% url 'products:product_toggle_status' 0 %}`.replace('0', productId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur lors du changement de statut');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors du changement de statut');
+            });
+        }
+    }
+
+    {% if product.product_type == 'product' %}
+    function showStockUpdateModal() {
+        const modal = new bootstrap.Modal(document.getElementById('stockUpdateModal'));
+        modal.show();
+    }
+
+    document.getElementById('stockUpdateForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const newStock = document.getElementById('newStock').value;
+        
+        fetch(`{% url 'products:product_stock_update' product.pk %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `stock_quantity=${newStock}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur lors de la mise à jour du stock');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la mise à jour du stock');
+        });
+    });
+    {% endif %}
+</script>
+{% endblock %}

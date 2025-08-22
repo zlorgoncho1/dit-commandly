@@ -1,0 +1,245 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ category.name }} - Catégories - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .warning-card {
+        border-left: 4px solid #dc3545;
+        background: #fff5f5;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .category-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de suppression -->
+    <div class="delete-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="category-icon-large me-4">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Supprimer la catégorie</h1>
+                        <p class="mb-0 opacity-75">
+                            Vous êtes sur le point de supprimer définitivement cette catégorie
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'products:category_detail' category.pk %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations de la catégorie -->
+        <div class="col-lg-6">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Catégorie à supprimer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Nom :</strong></div>
+                        <div class="col-sm-8">{{ category.name }}</div>
+                    </div>
+                    {% if category.description %}
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Description :</strong></div>
+                            <div class="col-sm-8">{{ category.description }}</div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Statut :</strong></div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-{% if category.is_active %}success{% else %}danger{% endif %}">
+                                {% if category.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Créée le :</strong></div>
+                        <div class="col-sm-8">{{ category.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Nb. produits :</strong></div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-primary">{{ category.products.count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avertissements et confirmation -->
+        <div class="col-lg-6">
+            {% if has_products %}
+                <!-- Avertissement si la catégorie contient des produits -->
+                <div class="card warning-card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Suppression impossible
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            <strong>Cette catégorie ne peut pas être supprimée</strong> car elle contient 
+                            <strong>{{ category.products.count }}</strong> produit{{ category.products.count|pluralize }}.
+                        </p>
+                        
+                        <div class="alert alert-warning">
+                            <h6><i class="bi bi-lightbulb"></i> Solutions possibles :</h6>
+                            <ul class="mb-0">
+                                <li>Déplacez les produits vers une autre catégorie</li>
+                                <li>Supprimez d'abord tous les produits de cette catégorie</li>
+                                <li>Désactivez la catégorie au lieu de la supprimer</li>
+                            </ul>
+                        </div>
+
+                        <!-- Liste des produits dans cette catégorie -->
+                        <h6 class="mt-3">Produits dans cette catégorie :</h6>
+                        <div class="list-group list-group-flush">
+                            {% for product in category.products.all|slice:":5" %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %} text-muted me-2"></i>
+                                        <div class="flex-grow-1">
+                                            <strong>{{ product.name }}</strong>
+                                            {% if product.sku %}
+                                                <small class="text-muted">({{ product.sku }})</small>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{% url 'products:product_detail' product.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            {% if category.products.count > 5 %}
+                                <div class="list-group-item px-0 text-center">
+                                    <small class="text-muted">
+                                        ... et {{ category.products.count|add:"-5" }} autre{{ category.products.count|add:"-5"|pluralize }} produit{{ category.products.count|add:"-5"|pluralize }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Confirmation de suppression -->
+                <div class="card warning-card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Confirmation de suppression
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            Êtes-vous sûr de vouloir supprimer définitivement la catégorie 
+                            <strong>"{{ category.name }}"</strong> ?
+                        </p>
+                        
+                        <div class="alert alert-danger">
+                            <h6><i class="bi bi-exclamation-circle"></i> Attention :</h6>
+                            <ul class="mb-0">
+                                <li>Cette action est <strong>irréversible</strong></li>
+                                <li>La catégorie sera définitivement supprimée</li>
+                                <li>Cette catégorie ne contient aucun produit</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'products:category_detail' category.pk %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour aux détails
+                </a>
+                
+                <div>
+                    {% if not can_delete %}
+                        <!-- Boutons alternatifs si suppression impossible -->
+                        <a href="{% url 'products:category_update' category.pk %}" class="btn btn-warning me-2">
+                            <i class="bi bi-pencil"></i> Modifier la catégorie
+                        </a>
+                        <a href="{% url 'products:category_list' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-list"></i> Liste des catégories
+                        </a>
+                    {% else %}
+                        <!-- Bouton de suppression si possible -->
+                        <a href="{% url 'products:category_list' %}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('Êtes-vous absolument sûr de vouloir supprimer cette catégorie ?')">
+                                <i class="bi bi-trash"></i> Supprimer définitivement
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animation d'avertissement pour les boutons dangereux
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteBtn = document.querySelector('.btn-danger');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('mouseenter', function() {
+                this.classList.add('animate__animated', 'animate__pulse');
+            });
+            deleteBtn.addEventListener('mouseleave', function() {
+                this.classList.remove('animate__animated', 'animate__pulse');
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,384 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Commande {{ order.order_number }} - Commandes - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-header {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .order-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 1rem;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #007bff;
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px #dee2e6;
+    }
+    .status-pending { color: #6c757d; }
+    .status-confirmed { color: #17a2b8; }
+    .status-processing { color: #ffc107; }
+    .status-shipped { color: #fd7e14; }
+    .status-delivered { color: #28a745; }
+    .status-cancelled { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de la commande -->
+    <div class="order-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="order-icon-large me-4">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Commande {{ order.order_number }}</h1>
+                        <p class="mb-1 opacity-75">{{ order.customer.display_name }}</p>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                {{ order.order_date|date:"d/m/Y" }}
+                            </span>
+                            {% include 'components/status_badge.html' with status=order.status status_display=order.get_status_display %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'orders:order_update' order.pk %}" class="btn btn-light">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'orders:order_item_create' order.pk %}">
+                                <i class="bi bi-plus-circle"></i> Ajouter un produit
+                            </a></li>
+                            {% if not invoice %}
+                                <li><a class="dropdown-item" href="{% url 'invoices:invoice_create' %}?order={{ order.pk }}">
+                                    <i class="bi bi-receipt"></i> Créer une facture
+                                </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'orders:order_delete' order.pk %}">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </a></li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'orders:order_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations de la commande -->
+        <div class="col-lg-4">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>N° Commande :</strong></div>
+                        <div class="col-sm-7">{{ order.order_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Client :</strong></div>
+                        <div class="col-sm-7">
+                            <a href="{% url 'customers:customer_detail' order.customer.pk %}">
+                                {{ order.customer.display_name }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Date :</strong></div>
+                        <div class="col-sm-7">{{ order.order_date|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Statut :</strong></div>
+                        <div class="col-sm-7">
+                            {% include 'components/status_badge.html' with status=order.status status_display=order.get_status_display %}
+                        </div>
+                    </div>
+                    {% if order.delivered_date %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Livré le :</strong></div>
+                            <div class="col-sm-7">{{ order.delivered_date|date:"d/m/Y" }}</div>
+                        </div>
+                    {% endif %}
+                    {% if order.notes %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Notes :</strong></div>
+                            <div class="col-sm-7">{{ order.notes|linebreaks }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Résumé financier -->
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calculator text-success"></i>
+                        Résumé financier
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Sous-total HT :</strong></div>
+                        <div class="col-sm-6 text-end">{{ subtotal_ht|floatformat:0 }} FCFA</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>TVA :</strong></div>
+                        <div class="col-sm-6 text-end">{{ tax_amount|floatformat:0 }} FCFA</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6"><strong>Total TTC :</strong></div>
+                        <div class="col-sm-6 text-end">
+                            <span class="h5 text-success">{{ total_amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facture associée -->
+            {% if invoice %}
+                <div class="card info-card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-receipt text-info"></i>
+                            Facture associée
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <strong>{{ invoice.invoice_number }}</strong><br>
+                                <small class="text-muted">{{ invoice.invoice_date|date:"d/m/Y" }}</small>
+                            </div>
+                            <a href="{% url 'invoices:invoice_detail' invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Voir
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Actions rapides sur le statut -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning text-warning"></i>
+                        Actions rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if order.status == 'pending' %}
+                            <button class="btn btn-sm btn-outline-info" onclick="updateOrderStatus('confirmed')">
+                                <i class="bi bi-check-circle"></i> Confirmer
+                            </button>
+                        {% elif order.status == 'confirmed' %}
+                            <button class="btn btn-sm btn-outline-warning" onclick="updateOrderStatus('processing')">
+                                <i class="bi bi-gear"></i> En traitement
+                            </button>
+                        {% elif order.status == 'processing' %}
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateOrderStatus('shipped')">
+                                <i class="bi bi-truck"></i> Expédier
+                            </button>
+                        {% elif order.status == 'shipped' %}
+                            <button class="btn btn-sm btn-outline-success" onclick="updateOrderStatus('delivered')">
+                                <i class="bi bi-check-square"></i> Livrer
+                            </button>
+                        {% endif %}
+                        
+                        {% if order.status != 'cancelled' and order.status != 'delivered' %}
+                            <button class="btn btn-sm btn-outline-danger" onclick="updateOrderStatus('cancelled')">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lignes de commande -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul text-primary"></i>
+                            Lignes de commande
+                            <span class="badge bg-primary">{{ order_items|length }}</span>
+                        </h5>
+                        <a href="{% url 'orders:order_item_create' order.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle"></i> Ajouter un produit
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if order_items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th class="text-center">Quantité</th>
+                                        <th class="text-end">Prix unitaire</th>
+                                        <th class="text-end">Sous-total</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order_items %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="bi bi-{% if item.product.product_type == 'service' %}gear{% else %}box{% endif %} text-muted"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ item.product.name }}</strong>
+                                                        {% if item.product.sku %}
+                                                            <br><small class="text-muted">SKU: {{ item.product.sku }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ item.quantity }}</span>
+                                            </td>
+                                            <td class="text-end">{{ item.unit_price|floatformat:0 }} FCFA</td>
+                                            <td class="text-end">
+                                                <strong>{{ item.subtotal|floatformat:0 }} FCFA</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'orders:order_item_update' order.pk item.pk %}" 
+                                                       class="btn btn-outline-warning" title="Modifier">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'orders:order_item_delete' order.pk item.pk %}" 
+                                                       class="btn btn-outline-danger" title="Supprimer">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th colspan="3">Total</th>
+                                        <th class="text-end">{{ total_amount|floatformat:0 }} FCFA</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-cart-x display-4 text-muted"></i>
+                            <h5 class="mt-3">Aucun produit</h5>
+                            <p class="text-muted">Cette commande ne contient pas encore de produit.</p>
+                            <a href="{% url 'orders:order_item_create' order.pk %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Ajouter un produit
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateOrderStatus(newStatus) {
+        if (confirm('Êtes-vous sûr de vouloir changer le statut de cette commande ?')) {
+            fetch(`{% url 'orders:order_status_update' order.pk %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur lors du changement de statut: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors du changement de statut');
+            });
+        }
+    }
+
+    // Ajout d'un token CSRF pour les requêtes AJAX
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrfmiddlewaretoken';
+            csrfToken.value = '{{ csrf_token }}';
+            document.body.appendChild(csrfToken);
+        }
+    });
+</script>
+{% endblock %}

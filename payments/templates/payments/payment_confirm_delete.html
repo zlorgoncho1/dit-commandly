@@ -1,0 +1,360 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ payment.reference }} - Paiements - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .warning-card {
+        border-left: 4px solid #dc3545;
+        background: #fff5f5;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .payment-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de suppression -->
+    <div class="delete-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="payment-icon-large me-4">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Supprimer le paiement</h1>
+                        <p class="mb-0 opacity-75">
+                            Vous êtes sur le point de supprimer définitivement ce paiement
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'payments:payment_detail' payment.pk %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations du paiement -->
+        <div class="col-lg-6">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Paiement à supprimer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Référence :</strong></div>
+                        <div class="col-sm-7">{{ payment.reference }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Client :</strong></div>
+                        <div class="col-sm-7">{{ payment.customer.display_name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Date :</strong></div>
+                        <div class="col-sm-7">{{ payment.payment_date|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Montant :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="h6 text-success">{{ payment.amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Méthode :</strong></div>
+                        <div class="col-sm-7">
+                            <span class="badge bg-info">{{ payment.get_payment_method_display }}</span>
+                        </div>
+                    </div>
+                    {% if payment.transaction_id %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Transaction :</strong></div>
+                            <div class="col-sm-7">
+                                <code>{{ payment.transaction_id }}</code>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if payment.notes %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Notes :</strong></div>
+                            <div class="col-sm-7">{{ payment.notes|truncatechars:100 }}</div>
+                        </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Créé le :</strong></div>
+                        <div class="col-sm-7">{{ payment.created_at|date:"d/m/Y à H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facture associée -->
+            {% if payment.invoice %}
+                <div class="card info-card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-receipt text-primary"></i>
+                            Facture associée
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>N° Facture :</strong></div>
+                            <div class="col-sm-7">
+                                <a href="{% url 'invoices:invoice_detail' payment.invoice.pk %}">
+                                    {{ payment.invoice.invoice_number }}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Date facture :</strong></div>
+                            <div class="col-sm-7">{{ payment.invoice.invoice_date|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Statut actuel :</strong></div>
+                            <div class="col-sm-7">
+                                {% include 'components/status_badge.html' with status=payment.invoice.status status_display=payment.invoice.get_status_display %}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Total facture :</strong></div>
+                            <div class="col-sm-7">{{ payment.invoice.total_amount|floatformat:0 }} FCFA</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Total payé :</strong></div>
+                            <div class="col-sm-7">{{ payment.invoice.paid_amount|floatformat:0 }} FCFA</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Restant dû :</strong></div>
+                            <div class="col-sm-7">
+                                <span class="{% if payment.invoice.remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ payment.invoice.remaining_amount|floatformat:0 }} FCFA
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Avertissements et confirmation -->
+        <div class="col-lg-6">
+            <div class="card warning-card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Confirmation de suppression
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        Êtes-vous sûr de vouloir supprimer définitivement le paiement 
+                        <strong>"{{ payment.reference }}"</strong> ?
+                    </p>
+                    
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-exclamation-circle"></i> Attention :</h6>
+                        <ul class="mb-0">
+                            <li>Cette action est <strong>irréversible</strong></li>
+                            <li>Le paiement sera définitivement supprimé</li>
+                            <li>Montant qui sera annulé : <strong>{{ payment.amount|floatformat:0 }} FCFA</strong></li>
+                            {% if payment.invoice %}
+                                <li>Le statut de la facture sera recalculé automatiquement</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Impact sur la facture -->
+                    {% if payment.invoice %}
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-calculator"></i> Impact sur la facture :</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Statut actuel :</strong><br>
+                                    <span class="badge bg-{{ payment.invoice.status }}">{{ payment.invoice.get_status_display }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Nouveau restant dû :</strong><br>
+                                    <span class="text-danger">{{ payment.invoice.remaining_amount|add:payment.amount|floatformat:0 }} FCFA</span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i>
+                                    La facture passera automatiquement en statut "En attente" ou "Partiellement payée" selon les autres paiements.
+                                </small>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Autres paiements du client -->
+                    {% if payment.customer.payments.count > 1 %}
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> Information :</h6>
+                            <p class="mb-0">
+                                Ce client a <strong>{{ payment.customer.payments.count|add:"-1" }}</strong> autre{{ payment.customer.payments.count|add:"-1"|pluralize }} paiement{{ payment.customer.payments.count|add:"-1"|pluralize }} 
+                                qui ne sera{{ payment.customer.payments.count|add:"-1"|pluralize:"nt" }} pas affecté{{ payment.customer.payments.count|add:"-1"|pluralize }} par cette suppression.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Alternatives à la suppression -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb text-warning"></i>
+                        Alternatives à la suppression
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'payments:payment_update' payment.pk %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Modifier le paiement
+                        </a>
+                        {% if payment.invoice %}
+                            <a href="{% url 'invoices:invoice_detail' payment.invoice.pk %}" class="btn btn-outline-info">
+                                <i class="bi bi-receipt"></i> Voir la facture
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'customers:customer_detail' payment.customer.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-person"></i> Voir le client
+                        </a>
+                        <a href="{% url 'payments:payment_detail' payment.pk %}" class="btn btn-outline-success">
+                            <i class="bi bi-eye"></i> Voir les détails
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historique des modifications -->
+            {% if payment.updated_at != payment.created_at %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-clock-history text-info"></i>
+                            Historique
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <small class="text-muted">
+                                    <i class="bi bi-plus-circle text-success"></i>
+                                    Créé le {{ payment.created_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            </div>
+                            <div class="timeline-item">
+                                <small class="text-muted">
+                                    <i class="bi bi-pencil text-warning"></i>
+                                    Modifié le {{ payment.updated_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'payments:payment_detail' payment.pk %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour aux détails
+                </a>
+                
+                <div>
+                    <a href="{% url 'payments:payment_update' payment.pk %}" class="btn btn-warning me-2">
+                        <i class="bi bi-pencil"></i> Modifier plutôt
+                    </a>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('Êtes-vous absolument sûr de vouloir supprimer ce paiement ?\n\nCette action est irréversible et :\n- Supprimera définitivement le paiement\n- Recalculera le statut de la facture associée\n- Annulera le montant de {{ payment.amount|floatformat:0 }} FCFA\n\nConfirmez-vous cette suppression ?')">
+                            <i class="bi bi-trash"></i> Supprimer définitivement
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animation d'avertissement pour les boutons dangereux
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteBtn = document.querySelector('.btn-danger');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('mouseenter', function() {
+                this.classList.add('animate__animated', 'animate__pulse');
+            });
+            deleteBtn.addEventListener('mouseleave', function() {
+                this.classList.remove('animate__animated', 'animate__pulse');
+            });
+        }
+        
+        // Calculs et informations pour le développement
+        const paymentAmount = {{ payment.amount }};
+        {% if payment.invoice %}
+            const invoiceTotal = {{ payment.invoice.total_amount }};
+            const currentPaid = {{ payment.invoice.paid_amount }};
+            const currentRemaining = {{ payment.invoice.remaining_amount }};
+            const newRemaining = currentRemaining + paymentAmount;
+            
+            console.log('Suppression de paiement:', {
+                paymentAmount: paymentAmount,
+                invoiceTotal: invoiceTotal,
+                currentPaid: currentPaid,
+                currentRemaining: currentRemaining,
+                newRemaining: newRemaining,
+                impactPercentage: ((paymentAmount / invoiceTotal) * 100).toFixed(1) + '%'
+            });
+            
+            // Déterminer le nouveau statut probable
+            let newStatus = 'pending';
+            if (newRemaining === 0) {
+                newStatus = 'paid';
+            } else if (newRemaining < invoiceTotal) {
+                newStatus = 'partially_paid';
+            }
+            
+            console.log('Nouveau statut probable de la facture:', newStatus);
+        {% endif %}
+    });
+</script>
+{% endblock %}

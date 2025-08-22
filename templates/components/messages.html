@@ -1,19 +1,27 @@
-<div class="messages-container">
+<div class="messages-container mb-4">
     {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {% if message.tags == 'error' %}
-                <i class="bi bi-exclamation-triangle-fill"></i>
-            {% elif message.tags == 'warning' %}
-                <i class="bi bi-exclamation-triangle"></i>
-            {% elif message.tags == 'success' %}
-                <i class="bi bi-check-circle-fill"></i>
-            {% else %}
-                <i class="bi bi-info-circle-fill"></i>
-            {% endif %}
+        <div class="notification notification-{{ message.tags|default:'info' }} animate-fade-in" 
+             style="position: relative; margin-bottom: 12px; border-radius: 8px; padding: 16px; background: white; border-left: 4px solid var(--color-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}primary{% endif %}); box-shadow: var(--shadow-sm);">
             
-            {{ message }}
-            
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="d-flex align-items-center">
+                {% if message.tags == 'error' %}
+                    <i class="bi bi-exclamation-circle text-danger me-3"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-triangle text-warning me-3"></i>
+                {% elif message.tags == 'success' %}
+                    <i class="bi bi-check-circle text-success me-3"></i>
+                {% else %}
+                    <i class="bi bi-info-circle text-primary me-3"></i>
+                {% endif %}
+                
+                <span class="flex-1">{{ message }}</span>
+                
+                <button type="button" class="btn btn-sm" 
+                        style="background: none; border: none; opacity: 0.7; margin-left: auto;"
+                        onclick="this.closest('.notification').remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
         </div>
     {% endfor %}
 </div>

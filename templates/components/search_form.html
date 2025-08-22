@@ -1,0 +1,111 @@
+{% comment %}
+Composant de formulaire de recherche réutilisable
+Usage: {% include 'components/search_form.html' with form=search_form action_url='module:list_view' %}
+{% endcomment %}
+
+<div class="search-section">
+    <form method="get" action="{% if action_url %}{% url action_url %}{% else %}{{ request.path }}{% endif %}" class="row g-3">
+        {% for field in form %}
+            {% if field.name != 'csrfmiddlewaretoken' %}
+                <div class="col-md-{% if forloop.counter0 < 4 %}3{% elif forloop.counter0 < 6 %}2{% else %}1{% endif %}">
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-check form-switch">
+                            {{ field }}
+                            <label class="form-check-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                            </label>
+                        </div>
+                    {% else %}
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ field.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+        
+        <!-- Boutons d'action -->
+        <div class="col-md-1 d-flex align-items-end">
+            <div class="btn-group-vertical w-100">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search"></i> Rechercher
+                </button>
+                {% if request.GET %}
+                    <a href="{% if action_url %}{% url action_url %}{% else %}{{ request.path }}{% endif %}" class="btn btn-outline-secondary btn-sm mt-1">
+                        <i class="bi bi-x-circle"></i> Effacer
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+    
+    <!-- Résumé des filtres actifs -->
+    {% if request.GET %}
+        <div class="mt-3">
+            <h6 class="text-muted mb-2">Filtres actifs :</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for key, value in request.GET.items %}
+                    {% if value and key != 'page' and key != 'csrfmiddlewaretoken' %}
+                        <span class="badge bg-primary">
+                            {{ key|capfirst }} : {{ value }}
+                            <a href="?{% for k, v in request.GET.items %}{% if k != key and k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}" class="text-white ms-1">
+                                <i class="bi bi-x"></i>
+                            </a>
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.search-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e9ecef;
+}
+
+.search-section .form-control,
+.search-section .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-section .form-control:focus,
+.search-section .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.search-section .btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.search-section .badge {
+    font-size: 0.875em;
+    padding: 0.5em 0.75em;
+}
+
+.search-section .badge a {
+    text-decoration: none;
+}
+
+.search-section .badge a:hover {
+    opacity: 0.8;
+}
+</style>

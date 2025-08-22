@@ -1,0 +1,465 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Facture {{ invoice.invoice_number }} - Factures - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .invoice-header {
+        background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .invoice-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 36px;
+        border: 3px solid rgba(255,255,255,0.3);
+    }
+    .payment-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .payment-paid { background: #28a745; }
+    .payment-partial { background: #ffc107; }
+    .payment-pending { background: #dc3545; }
+    .payment-overdue { background: #6c757d; }
+    
+    .status-pending { color: #6c757d; }
+    .status-paid { color: #28a745; }
+    .status-partially_paid { color: #ffc107; }
+    .status-overdue { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête de la facture -->
+    <div class="invoice-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="invoice-icon-large me-4">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-1">Facture {{ invoice.invoice_number }}</h1>
+                        <p class="mb-1 opacity-75">{{ invoice.customer.display_name }}</p>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                {{ invoice.invoice_date|date:"d/m/Y" }}
+                            </span>
+                            {% include 'components/status_badge.html' with status=invoice.status status_display=invoice.get_status_display %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'invoices:invoice_pdf' invoice.pk %}" class="btn btn-light" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'invoices:invoice_update' invoice.pk %}" class="btn btn-light">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'payments:payment_create' %}?invoice={{ invoice.pk }}">
+                                <i class="bi bi-credit-card"></i> Enregistrer un paiement
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'invoices:invoice_pdf' invoice.pk %}" target="_blank">
+                                <i class="bi bi-download"></i> Télécharger PDF
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'invoices:invoice_delete' invoice.pk %}">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </a></li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'invoices:invoice_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations de la facture -->
+        <div class="col-lg-4">
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>N° Facture :</strong></div>
+                        <div class="col-sm-7">{{ invoice.invoice_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Client :</strong></div>
+                        <div class="col-sm-7">
+                            <a href="{% url 'customers:customer_detail' invoice.customer.pk %}">
+                                {{ invoice.customer.display_name }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Date :</strong></div>
+                        <div class="col-sm-7">{{ invoice.invoice_date|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Échéance :</strong></div>
+                        <div class="col-sm-7">
+                            {{ invoice.due_date|date:"d/m/Y" }}
+                            {% if invoice.due_date < today and invoice.status != 'paid' %}
+                                <span class="badge bg-danger ms-1">En retard</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-5"><strong>Statut :</strong></div>
+                        <div class="col-sm-7">
+                            {% include 'components/status_badge.html' with status=invoice.status status_display=invoice.get_status_display %}
+                        </div>
+                    </div>
+                    {% if invoice.order %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Commande :</strong></div>
+                            <div class="col-sm-7">
+                                <a href="{% url 'orders:order_detail' invoice.order.pk %}">
+                                    {{ invoice.order.order_number }}
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if invoice.notes %}
+                        <div class="row mb-3">
+                            <div class="col-sm-5"><strong>Notes :</strong></div>
+                            <div class="col-sm-7">{{ invoice.notes|linebreaks }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Résumé financier -->
+            <div class="card info-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calculator text-success"></i>
+                        Résumé financier
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Sous-total HT :</strong></div>
+                        <div class="col-sm-6 text-end">{{ subtotal_ht|floatformat:0 }} FCFA</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>TVA :</strong></div>
+                        <div class="col-sm-6 text-end">{{ tax_amount|floatformat:0 }} FCFA</div>
+                    </div>
+                    <hr>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Total TTC :</strong></div>
+                        <div class="col-sm-6 text-end">
+                            <span class="h5 text-success">{{ total_amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Montant payé :</strong></div>
+                        <div class="col-sm-6 text-end">
+                            <span class="text-primary">{{ paid_amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-6"><strong>Restant dû :</strong></div>
+                        <div class="col-sm-6 text-end">
+                            <span class="h6 {% if remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ remaining_amount|floatformat:0 }} FCFA
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicateur de paiement -->
+            <div class="row">
+                <div class="col-6">
+                    <div class="stat-card bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'partially_paid' %}warning{% else %}danger{% endif %} text-white">
+                        <h4>
+                            {% if invoice.status == 'paid' %}
+                                <i class="bi bi-check-circle"></i>
+                            {% elif invoice.status == 'partially_paid' %}
+                                <i class="bi bi-clock"></i>
+                            {% else %}
+                                <i class="bi bi-exclamation-circle"></i>
+                            {% endif %}
+                        </h4>
+                        <small>{{ invoice.get_status_display }}</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-info text-white">
+                        <h4>{{ payments|length }}</h4>
+                        <small>Paiement{{ payments|length|pluralize }}</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            {% if remaining_amount > 0 %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-lightning text-warning"></i>
+                            Actions rapides
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'payments:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-success btn-sm">
+                                <i class="bi bi-credit-card"></i> Enregistrer un paiement
+                            </a>
+                            <button class="btn btn-outline-success btn-sm" onclick="markAsPaid()">
+                                <i class="bi bi-check-circle"></i> Marquer comme payée
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Détails et historique -->
+        <div class="col-lg-8">
+            <!-- Onglets -->
+            <ul class="nav nav-tabs" id="invoiceTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab">
+                        <i class="bi bi-list-ul"></i> Lignes de facture
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments-content" type="button" role="tab">
+                        <i class="bi bi-credit-card"></i> Paiements ({{ payments|length }})
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="invoiceTabsContent">
+                <!-- Onglet Lignes de facture -->
+                <div class="tab-pane fade show active" id="items" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            {% if invoice.order and invoice.order.items.exists %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Produit/Service</th>
+                                                <th class="text-center">Quantité</th>
+                                                <th class="text-end">Prix unitaire</th>
+                                                <th class="text-end">TVA</th>
+                                                <th class="text-end">Sous-total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in invoice.order.items.all %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="me-2">
+                                                                <i class="bi bi-{% if item.product.product_type == 'service' %}gear{% else %}box{% endif %} text-muted"></i>
+                                                            </div>
+                                                            <div>
+                                                                <strong>{{ item.product.name }}</strong>
+                                                                {% if item.product.sku %}
+                                                                    <br><small class="text-muted">SKU: {{ item.product.sku }}</small>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary">{{ item.quantity }}</span>
+                                                    </td>
+                                                    <td class="text-end">{{ item.unit_price|floatformat:0 }} FCFA</td>
+                                                    <td class="text-end">{{ item.tax_rate|default:0 }}%</td>
+                                                    <td class="text-end">
+                                                        <strong>{{ item.subtotal|floatformat:0 }} FCFA</strong>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <th colspan="4">Total</th>
+                                                <th class="text-end">{{ total_amount|floatformat:0 }} FCFA</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="bi bi-receipt display-4 text-muted"></i>
+                                    <h5 class="mt-3">Aucun article</h5>
+                                    <p class="text-muted">Cette facture ne contient pas d'articles détaillés.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Paiements -->
+                <div class="tab-pane fade" id="payments-content" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            {% if payments %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Référence</th>
+                                                <th>Date</th>
+                                                <th>Méthode</th>
+                                                <th class="text-end">Montant</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for payment in payments %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ payment.reference }}</strong>
+                                                        {% if payment.notes %}
+                                                            <br><small class="text-muted">{{ payment.notes|truncatechars:50 }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ payment.payment_date|date:"d/m/Y à H:i" }}</td>
+                                                    <td>
+                                                        <span class="badge bg-info">{{ payment.get_payment_method_display }}</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span class="text-success">{{ payment.amount|floatformat:0 }} FCFA</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <a href="{% url 'payments:payment_detail' payment.pk %}" 
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <th colspan="3">Total des paiements</th>
+                                                <th class="text-end">{{ paid_amount|floatformat:0 }} FCFA</th>
+                                                <th></th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="{% url 'payments:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-success">
+                                        <i class="bi bi-plus-circle"></i> Nouveau paiement
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="bi bi-credit-card display-4 text-muted"></i>
+                                    <h5 class="mt-3">Aucun paiement</h5>
+                                    <p class="text-muted">Cette facture n'a pas encore reçu de paiement.</p>
+                                    <a href="{% url 'payments:payment_create' %}?invoice={{ invoice.pk }}" class="btn btn-success">
+                                        <i class="bi bi-plus-circle"></i> Enregistrer un paiement
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function markAsPaid() {
+        const remainingAmount = {{ remaining_amount }};
+        if (confirm(`Marquer cette facture comme entièrement payée ?\nMontant restant: ${remainingAmount} FCFA`)) {
+            // Créer automatiquement un paiement pour le montant restant
+            window.location.href = "{% url 'payments:payment_create' %}?invoice={{ invoice.pk }}&amount={{ remaining_amount }}";
+        }
+    }
+
+    function updateInvoiceStatus(newStatus) {
+        if (confirm('Êtes-vous sûr de vouloir changer le statut de cette facture ?')) {
+            fetch(`{% url 'invoices:invoice_status_update' invoice.pk %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur lors du changement de statut: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors du changement de statut');
+            });
+        }
+    }
+
+    // Mise à jour automatique du statut basée sur les paiements
+    document.addEventListener('DOMContentLoaded', function() {
+        const totalAmount = {{ total_amount }};
+        const paidAmount = {{ paid_amount }};
+        const remainingAmount = {{ remaining_amount }};
+        
+        // Logique de mise à jour du statut si nécessaire
+        console.log('Facture:', {
+            total: totalAmount,
+            paid: paidAmount,
+            remaining: remainingAmount,
+            status: '{{ invoice.status }}'
+        });
+    });
+</script>
+{% endblock %}

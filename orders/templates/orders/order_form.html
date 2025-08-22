@@ -1,0 +1,352 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Commandes - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-header {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #fd7e14;
+    }
+    .form-section h5 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .required-field {
+        color: #dc3545;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #fd7e14;
+        box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.25);
+    }
+    .btn-warning {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+        border: none;
+        color: white;
+    }
+    .btn-warning:hover {
+        background: linear-gradient(135deg, #e96c00 0%, #e6ac00 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="form-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-{% if order %}pencil{% else %}plus-circle{% endif %}"></i>
+                    {{ title }}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if order %}
+                        Modifiez les informations de la commande
+                    {% else %}
+                        Créez une nouvelle commande
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% if order %}{% url 'orders:order_detail' order.pk %}{% else %}{% url 'orders:order_list' %}{% endif %}" 
+                   class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Informations de base -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-info-circle text-warning"></i>
+                        Informations de base
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.customer.id_for_label }}" class="form-label">
+                                {{ form.customer.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.customer }}
+                            {% if form.customer.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.customer.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <a href="{% url 'customers:customer_create' %}" target="_blank">
+                                    <i class="bi bi-plus-circle"></i> Créer un nouveau client
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.order_date.id_for_label }}" class="form-label">
+                                {{ form.order_date.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.order_date }}
+                            {% if form.order_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.order_date.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">
+                                {{ form.status.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3" id="delivered-date-field" style="display: none;">
+                            <label for="{{ form.delivered_date.id_for_label }}" class="form-label">
+                                {{ form.delivered_date.label }}
+                            </label>
+                            {{ form.delivered_date }}
+                            {% if form.delivered_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.delivered_date.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes et commentaires -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-chat-text text-warning"></i>
+                        Notes et commentaires
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                            {{ form.notes.label }}
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Notes internes ou instructions spéciales pour cette commande</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar avec informations supplémentaires -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle text-warning"></i>
+                            Informations
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if order %}
+                            <div class="mb-3">
+                                <strong>N° Commande :</strong><br>
+                                <code>{{ order.order_number }}</code>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Créée le :</strong><br>
+                                <small class="text-muted">{{ order.created_at|date:"d/m/Y à H:i" }}</small>
+                            </div>
+                            {% if order.updated_at != order.created_at %}
+                                <div class="mb-3">
+                                    <strong>Modifiée le :</strong><br>
+                                    <small class="text-muted">{{ order.updated_at|date:"d/m/Y à H:i" }}</small>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Résumé financier -->
+                            <hr>
+                            <div class="mb-2">
+                                <strong>Montant total :</strong><br>
+                                <span class="h5 text-success">{{ order.total_amount|floatformat:0 }} FCFA</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Nombre d'articles :</strong><br>
+                                <span class="badge bg-primary">{{ order.items.count }}</span>
+                            </div>
+                            
+                            {% if order.items.exists %}
+                                <div class="mt-3">
+                                    <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Voir les détails
+                                    </a>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="bi bi-info-circle"></i>
+                                    Après création, vous pourrez ajouter des produits à cette commande.
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Aide -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-question-circle text-info"></i>
+                            Aide
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Les champs marqués d'un <span class="required-field">*</span> sont obligatoires
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Le numéro de commande est généré automatiquement
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Vous pourrez ajouter des produits après la création
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    La date de livraison n'apparaît que pour les commandes livrées
+                                </li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Statuts disponibles -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-flag text-info"></i>
+                            Statuts de commande
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-1"><span class="badge bg-secondary">En attente</span> - Commande créée</li>
+                                <li class="mb-1"><span class="badge bg-info">Confirmée</span> - Commande validée</li>
+                                <li class="mb-1"><span class="badge bg-warning">En cours</span> - En préparation</li>
+                                <li class="mb-1"><span class="badge bg-primary">Expédiée</span> - Envoyée au client</li>
+                                <li class="mb-1"><span class="badge bg-success">Livrée</span> - Réception confirmée</li>
+                                <li class="mb-1"><span class="badge bg-danger">Annulée</span> - Commande annulée</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <a href="{% if order %}{% url 'orders:order_detail' order.pk %}{% else %}{% url 'orders:order_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-warning btn-lg">
+                        <i class="bi bi-check-circle"></i> {{ submit_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusField = document.getElementById('{{ form.status.id_for_label }}');
+        const deliveredDateField = document.getElementById('delivered-date-field');
+        
+        function toggleDeliveredDateField() {
+            if (statusField.value === 'delivered') {
+                deliveredDateField.style.display = 'block';
+            } else {
+                deliveredDateField.style.display = 'none';
+            }
+        }
+        
+        // Vérification initiale
+        toggleDeliveredDateField();
+        
+        // Écouter les changements
+        statusField.addEventListener('change', toggleDeliveredDateField);
+        
+        // Validation côté client
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            const requiredFields = form.querySelectorAll('[required]');
+            
+            requiredFields.forEach(function(field) {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Veuillez corriger les erreurs dans le formulaire');
+            }
+        });
+        
+        // Auto-focus sur le premier champ
+        const customerField = document.getElementById('{{ form.customer.id_for_label }}');
+        if (customerField && !customerField.value) {
+            customerField.focus();
+        }
+        
+        // Formatage automatique de la date
+        const orderDateField = document.getElementById('{{ form.order_date.id_for_label }}');
+        if (orderDateField && orderDateField.type === 'text') {
+            // Si le champ de date est un input text, on peut ajouter un formatage
+            orderDateField.addEventListener('input', function(e) {
+                // Logique de formatage de date si nécessaire
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ product.name }} - Produits - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .warning-card {
+        border-left: 4px solid #ffc107;
+        background: #fff3cd;
+    }
+    .danger-card {
+        border-left: 4px solid #dc3545;
+        background: #f8d7da;
+    }
+    .success-card {
+        border-left: 4px solid #28a745;
+        background: #d4edda;
+    }
+    .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="delete-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-trash3"></i>
+                    Supprimer le produit
+                </h1>
+                <p class="mb-0 opacity-75">
+                    Vous êtes sur le point de supprimer définitivement ce produit
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Informations du produit -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box text-primary"></i>
+                        Informations du produit
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="product-image me-3">
+                                    <i class="bi bi-{% if product.product_type == 'service' %}gear{% else %}box{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">{{ product.name }}</h5>
+                                    {% if product.sku %}
+                                        <p class="text-muted mb-0">SKU: {{ product.sku }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">{{ product.get_product_type_display }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>Prix :</strong> {{ product.unit_price|floatformat:0 }} FCFA
+                            </div>
+                            {% if product.category %}
+                                <div class="mb-2">
+                                    <strong>Catégorie :</strong> {{ product.category.name }}
+                                </div>
+                            {% endif %}
+                            {% if product.product_type == 'product' %}
+                                <div class="mb-2">
+                                    <strong>Stock :</strong> {{ product.stock_quantity }} unités
+                                </div>
+                            {% endif %}
+                            <div class="mb-2">
+                                <strong>Statut :</strong>
+                                <span class="badge bg-{% if product.is_active %}success{% else %}danger{% endif %}">
+                                    {% if product.is_active %}Actif{% else %}Inactif{% endif %}
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Créé le :</strong> {{ product.created_at|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if product.description %}
+                        <div class="mt-3">
+                            <strong>Description :</strong>
+                            <p class="mt-1 mb-0">{{ product.description|truncatechars:200 }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Vérification des dépendances -->
+            {% if not can_delete %}
+                <div class="card danger-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Suppression impossible
+                        </h5>
+                        <p class="mb-3">
+                            Ce produit ne peut pas être supprimé car il est utilisé dans des commandes existantes.
+                            La suppression compromettrait l'intégrité des données historiques.
+                        </p>
+
+                        {% if has_order_items %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-list-check"></i>
+                                <strong>Commandes associées :</strong> Ce produit apparaît dans {{ product.orderitem_set.count }} ligne(s) de commande.
+                                <div class="mt-2">
+                                    <a href="{% url 'orders:order_list' %}?product={{ product.pk }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Voir les commandes
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Alternative :</strong> Vous pouvez désactiver ce produit au lieu de le supprimer.
+                            Cela le rendra invisible dans les listes de sélection tout en conservant l'historique.
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'products:product_toggle_status' product.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-{% if product.is_active %}x-circle{% else %}check-circle{% endif %}"></i>
+                                        {% if product.is_active %}Désactiver le produit{% else %}Activer le produit{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions pour suppression impossible -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour au produit
+                    </a>
+                    <a href="{% url 'products:product_update' product.pk %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Modifier le produit
+                    </a>
+                </div>
+
+            {% else %}
+                <!-- Suppression possible -->
+                <div class="card success-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Suppression autorisée
+                        </h5>
+                        <p class="mb-0">
+                            Ce produit peut être supprimé en toute sécurité. Il n'est utilisé dans aucune commande.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Avertissement final -->
+                <div class="card warning-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Attention !
+                        </h5>
+                        <p class="mb-0">
+                            Cette action est <strong>définitive</strong> et ne peut pas être annulée. 
+                            Toutes les informations de ce produit seront perdues.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Formulaire de suppression -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger" id="deleteButton">
+                            <i class="bi bi-trash3"></i> Supprimer définitivement
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButton = document.getElementById('deleteButton');
+        
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const productName = "{{ product.name|escapejs }}";
+                const confirmMessage = `Êtes-vous absolument sûr de vouloir supprimer le produit "${productName}" ?\n\nCette action est définitive et ne peut pas être annulée.`;
+                
+                if (confirm(confirmMessage)) {
+                    // Deuxième confirmation
+                    const finalConfirm = `Dernière confirmation :\n\nTapez "SUPPRIMER" pour confirmer la suppression de ${productName}`;
+                    const userInput = prompt(finalConfirm);
+                    
+                    if (userInput === 'SUPPRIMER') {
+                        // Soumettre le formulaire
+                        this.closest('form').submit();
+                    } else {
+                        alert('Suppression annulée. Le texte saisi ne correspond pas.');
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

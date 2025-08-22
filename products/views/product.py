@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.http import JsonResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, F
 from products.models import Product, Category
 from products.forms import ProductForm, CategoryForm, ProductSearchForm
@@ -103,6 +103,7 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product
     form_class = ProductForm
     template_name = 'products/product_form.html'
+    success_url = reverse_lazy('products:product_list')
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -126,10 +127,13 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'products/product_form.html'
     pk_url_kwarg = 'pk'
 
+    def get_success_url(self):
+        return reverse('products:product_detail', kwargs={'pk': self.object.pk})
+
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f'Produit "{self.object.name}" modifié avec succès.')
-        return redirect('products:product_detail', pk=self.object.pk)
+        return response
 
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification du produit. Veuillez corriger les erreurs.')
@@ -148,7 +152,7 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'products/product_confirm_delete.html'
     pk_url_kwarg = 'pk'
     success_url = reverse_lazy('products:product_list')
-
+    
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         has_order_items = self.object.orderitem_set.exists()
@@ -271,7 +275,7 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f'Catégorie "{self.object.name}" modifiée avec succès.')
-        return redirect(self.success_url)
+        return response
 
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification de la catégorie. Veuillez corriger les erreurs.')

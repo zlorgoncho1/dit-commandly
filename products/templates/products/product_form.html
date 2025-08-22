@@ -1,0 +1,389 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Produits - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #28a745;
+    }
+    .form-section h5 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .required-field {
+        color: #dc3545;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+    }
+    .btn-success:hover {
+        background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="form-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-{% if product %}pencil{% else %}plus-circle{% endif %}"></i>
+                    {{ title }}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if product %}
+                        Modifiez les informations du produit
+                    {% else %}
+                        Ajoutez un nouveau produit à votre catalogue
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% if product %}{% url 'products:product_detail' product.pk %}{% else %}{% url 'products:product_list' %}{% endif %}" 
+                   class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Informations générales -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-info-circle text-success"></i>
+                        Informations générales
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                {{ form.name.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.sku.id_for_label }}" class="form-label">
+                                {{ form.sku.label }}
+                            </label>
+                            {{ form.sku }}
+                            {% if form.sku.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.sku.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Code unique du produit (optionnel)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.product_type.id_for_label }}" class="form-label">
+                                {{ form.product_type.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            {{ form.product_type }}
+                            {% if form.product_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.product_type.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">
+                                {{ form.category.label }}
+                            </label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.category.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prix et TVA -->
+                <div class="form-section">
+                    <h5>
+                        <i class="bi bi-currency-exchange text-success"></i>
+                        Prix et TVA
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unit_price.id_for_label }}" class="form-label">
+                                {{ form.unit_price.label }}
+                                <span class="required-field">*</span>
+                            </label>
+                            <div class="input-group">
+                                {{ form.unit_price }}
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            {% if form.unit_price.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.unit_price.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.tax_rate.id_for_label }}" class="form-label">
+                                {{ form.tax_rate.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.tax_rate }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.tax_rate.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.tax_rate.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestion du stock (si produit physique) -->
+                <div class="form-section" id="stock-section">
+                    <h5>
+                        <i class="bi bi-box-seam text-success"></i>
+                        Gestion du stock
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.stock_quantity.id_for_label }}" class="form-label">
+                                {{ form.stock_quantity.label }}
+                            </label>
+                            {{ form.stock_quantity }}
+                            {% if form.stock_quantity.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.stock_quantity.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.min_stock_level.id_for_label }}" class="form-label">
+                                {{ form.min_stock_level.label }}
+                            </label>
+                            {{ form.min_stock_level }}
+                            {% if form.min_stock_level.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.min_stock_level.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Seuil d'alerte pour le stock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar avec informations supplémentaires -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-gear text-success"></i>
+                            Paramètres
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    {{ form.is_active.label }}
+                                </label>
+                            </div>
+                            {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_active.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Les produits inactifs n'apparaîtront pas dans les listes de sélection
+                            </div>
+                        </div>
+
+                        {% if product %}
+                            <hr>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <strong>Créé le :</strong><br>
+                                    {{ product.created_at|date:"d/m/Y à H:i" }}
+                                </small>
+                            </div>
+                            {% if product.updated_at != product.created_at %}
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <strong>Modifié le :</strong><br>
+                                        {{ product.updated_at|date:"d/m/Y à H:i" }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Aide -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-question-circle text-info"></i>
+                            Aide
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Les champs marqués d'un <span class="required-field">*</span> sont obligatoires
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Choisissez "Produit" pour les articles physiques avec stock
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Choisissez "Service" pour les prestations sans stock
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    Le SKU est un identifiant unique optionnel
+                                </li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <a href="{% if product %}{% url 'products:product_detail' product.pk %}{% else %}{% url 'products:product_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-check-circle"></i> {{ submit_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productTypeField = document.getElementById('{{ form.product_type.id_for_label }}');
+        const stockSection = document.getElementById('stock-section');
+        
+        function toggleStockSection() {
+            if (productTypeField.value === 'service') {
+                stockSection.style.display = 'none';
+            } else {
+                stockSection.style.display = 'block';
+            }
+        }
+        
+        // Vérification initiale
+        toggleStockSection();
+        
+        // Écouter les changements
+        productTypeField.addEventListener('change', toggleStockSection);
+        
+        // Validation côté client
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            const requiredFields = form.querySelectorAll('[required]');
+            
+            requiredFields.forEach(function(field) {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            // Validation prix
+            const priceField = document.getElementById('{{ form.unit_price.id_for_label }}');
+            if (priceField.value && parseFloat(priceField.value) <= 0) {
+                priceField.classList.add('is-invalid');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Veuillez corriger les erreurs dans le formulaire');
+            }
+        });
+        
+        // Auto-formatage des champs numériques
+        const numericFields = ['{{ form.unit_price.id_for_label }}', '{{ form.tax_rate.id_for_label }}', 
+                              '{{ form.stock_quantity.id_for_label }}', '{{ form.min_stock_level.id_for_label }}'];
+        
+        numericFields.forEach(function(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', function(e) {
+                    // Supprimer les caractères non numériques (sauf le point décimal)
+                    let value = e.target.value.replace(/[^0-9.]/g, '');
+                    // S'assurer qu'il n'y a qu'un seul point décimal
+                    const parts = value.split('.');
+                    if (parts.length > 2) {
+                        value = parts[0] + '.' + parts.slice(1).join('');
+                    }
+                    e.target.value = value;
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

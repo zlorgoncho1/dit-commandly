@@ -143,10 +143,13 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        order = form.save()
-        messages.success(self.request, f'Commande "{order.order_number}" créée avec succès.')
-        return redirect('orders:order_detail', pk=order.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Commande "{self.object.order_number}" créée avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la création de la commande. Veuillez corriger les erreurs.')
@@ -172,10 +175,13 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        order = form.save()
-        messages.success(self.request, f'Commande "{order.order_number}" modifiée avec succès.')
-        return redirect('orders:order_detail', pk=order.pk)
+        response = super().form_valid(form)
+        messages.success(self.request, f'Commande "{self.object.order_number}" modifiée avec succès.')
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification de la commande. Veuillez corriger les erreurs.')
@@ -302,13 +308,16 @@ class OrderItemCreateView(LoginRequiredMixin, CreateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.order.pk})
+    
     def form_valid(self, form):
         order_item = form.save(commit=False)
         order_item.order = self.order
         order_item.save()
         
         messages.success(self.request, f'Produit ajouté à la commande avec succès.')
-        return redirect('orders:order_detail', pk=self.order.pk)
+        return super().form_valid(form)
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de l\'ajout du produit. Veuillez corriger les erreurs.')
@@ -339,10 +348,13 @@ class OrderItemUpdateView(LoginRequiredMixin, UpdateView):
         })
         return context
     
+    def get_success_url(self):
+        return reverse('orders:order_detail', kwargs={'pk': self.object.order.pk})
+    
     def form_valid(self, form):
-        order_item = form.save()
+        response = super().form_valid(form)
         messages.success(self.request, f'Ligne de commande modifiée avec succès.')
-        return redirect('orders:order_detail', pk=order_item.order.pk)
+        return response
     
     def form_invalid(self, form):
         messages.error(self.request, 'Erreur lors de la modification. Veuillez corriger les erreurs.')

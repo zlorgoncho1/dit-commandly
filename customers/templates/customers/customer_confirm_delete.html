@@ -1,0 +1,285 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ customer.display_name }} - Clients - Commandly{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .warning-card {
+        border-left: 4px solid #ffc107;
+        background: #fff3cd;
+    }
+    .danger-card {
+        border-left: 4px solid #dc3545;
+        background: #f8d7da;
+    }
+    .success-card {
+        border-left: 4px solid #28a745;
+        background: #d4edda;
+    }
+    .dependency-item {
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="delete-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-trash3"></i>
+                    Supprimer le client
+                </h1>
+                <p class="mb-0 opacity-75">
+                    Vous êtes sur le point de supprimer définitivement ce client
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Informations du client -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person text-primary"></i>
+                        Informations du client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar-circle me-3">
+                                    <i class="bi bi-{% if customer.customer_type == 'company' %}building{% else %}person{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">{{ customer.display_name }}</h5>
+                                    {% if customer.company_name %}
+                                        <p class="text-muted mb-0">{{ customer.company_name }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">{{ customer.get_customer_type_display }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>Email :</strong> {{ customer.email|default:"Non renseigné" }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Téléphone :</strong> {{ customer.phone|default:"Non renseigné" }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Statut :</strong>
+                                <span class="badge bg-{% if customer.is_active %}success{% else %}danger{% endif %}">
+                                    {% if customer.is_active %}Actif{% else %}Inactif{% endif %}
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Créé le :</strong> {{ customer.created_at|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vérification des dépendances -->
+            {% if not can_delete %}
+                <div class="card danger-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Suppression impossible
+                        </h5>
+                        <p class="mb-3">
+                            Ce client ne peut pas être supprimé car il est lié à d'autres éléments du système.
+                            Vous devez d'abord supprimer ou modifier ces éléments :
+                        </p>
+
+                        {% if has_orders %}
+                            <div class="dependency-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-list-check text-warning"></i>
+                                        <strong>Commandes associées</strong>
+                                        <p class="mb-0 text-muted">Ce client a des commandes enregistrées</p>
+                                    </div>
+                                    <a href="{% url 'orders:order_list' %}?customer={{ customer.pk }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Voir les commandes
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if has_invoices %}
+                            <div class="dependency-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-receipt text-warning"></i>
+                                        <strong>Factures associées</strong>
+                                        <p class="mb-0 text-muted">Ce client a des factures enregistrées</p>
+                                    </div>
+                                    <a href="{% url 'invoices:invoice_list' %}?customer={{ customer.pk }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Voir les factures
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if has_payments %}
+                            <div class="dependency-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-credit-card text-warning"></i>
+                                        <strong>Paiements associés</strong>
+                                        <p class="mb-0 text-muted">Ce client a des paiements enregistrés</p>
+                                    </div>
+                                    <a href="{% url 'payments:payment_list' %}?customer={{ customer.pk }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Voir les paiements
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Alternative :</strong> Vous pouvez désactiver ce client au lieu de le supprimer.
+                            Cela le rendra invisible dans les listes de sélection tout en conservant l'historique.
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'customers:customer_toggle_status' customer.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-{% if customer.is_active %}x-circle{% else %}check-circle{% endif %}"></i>
+                                        {% if customer.is_active %}Désactiver le client{% else %}Activer le client{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions pour suppression impossible -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour au client
+                    </a>
+                    <a href="{% url 'customers:customer_update' customer.pk %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Modifier le client
+                    </a>
+                </div>
+
+            {% else %}
+                <!-- Suppression possible -->
+                <div class="card success-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Suppression autorisée
+                        </h5>
+                        <p class="mb-0">
+                            Ce client peut être supprimé en toute sécurité. Il n'est lié à aucun autre élément du système.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Avertissement final -->
+                <div class="card warning-card mb-4">
+                    <div class="card-body">
+                        <h5 class="text-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Attention !
+                        </h5>
+                        <p class="mb-0">
+                            Cette action est <strong>définitive</strong> et ne peut pas être annulée. 
+                            Toutes les informations de ce client seront perdues.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Formulaire de suppression -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger" id="deleteButton">
+                            <i class="bi bi-trash3"></i> Supprimer définitivement
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButton = document.getElementById('deleteButton');
+        
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const customerName = "{{ customer.display_name|escapejs }}";
+                const confirmMessage = `Êtes-vous absolument sûr de vouloir supprimer le client "${customerName}" ?\n\nCette action est définitive et ne peut pas être annulée.`;
+                
+                if (confirm(confirmMessage)) {
+                    // Deuxième confirmation
+                    const finalConfirm = `Dernière confirmation :\n\nTapez "SUPPRIMER" pour confirmer la suppression de ${customerName}`;
+                    const userInput = prompt(finalConfirm);
+                    
+                    if (userInput === 'SUPPRIMER') {
+                        // Soumettre le formulaire
+                        this.closest('form').submit();
+                    } else {
+                        alert('Suppression annulée. Le texte saisi ne correspond pas.');
+                    }
+                }
+            });
+        }
+
+        // Style pour les avatars circulaires
+        const style = document.createElement('style');
+        style.textContent = `
+            .avatar-circle {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 20px;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+{% endblock %}
